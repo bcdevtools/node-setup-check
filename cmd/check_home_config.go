@@ -93,14 +93,19 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	type jsonRpcAppToml struct {
 		Enable bool `toml:"enable"`
 	}
+	type stateSyncAppToml struct {
+		SnapshotInterval   uint `toml:"snapshot-interval"`
+		SnapshotKeepRecent uint `toml:"snapshot-keep-recent"`
+	}
 	type appToml struct {
-		MinimumGasPrices  string          `toml:"minimum-gas-prices"`
-		Pruning           string          `toml:"pruning"`
-		PruningKeepRecent string          `toml:"pruning-keep-recent"`
-		PruningInterval   string          `toml:"pruning-interval"`
-		HaltHeight        int64           `toml:"halt-height"`
-		Api               *apiAppToml     `toml:"api"`
-		JsonRpc           *jsonRpcAppToml `toml:"json-rpc"`
+		MinimumGasPrices  string            `toml:"minimum-gas-prices"`
+		Pruning           string            `toml:"pruning"`
+		PruningKeepRecent string            `toml:"pruning-keep-recent"`
+		PruningInterval   string            `toml:"pruning-interval"`
+		HaltHeight        int64             `toml:"halt-height"`
+		Api               *apiAppToml       `toml:"api"`
+		JsonRpc           *jsonRpcAppToml   `toml:"json-rpc"`
+		StateSync         *stateSyncAppToml `toml:"state-sync"`
 	}
 
 	var app appToml
@@ -234,6 +239,29 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 				warnRecord("json-rpc is disabled in app.toml file, archival node should enable it", "set enable to true")
 			}
 		}
+	}
+
+	if app.StateSync == nil {
+		exitWithErrorMsgf("ERR: [state-sync] section is missing in app.toml file at %s\n", appTomlFilePath)
+		return
+	}
+	if app.StateSync.SnapshotInterval == 0 {
+		if isRpc {
+			warnRecord("snapshot-interval is 0 (disable snapshot) in app.toml file, RPC nodes should set this", "set snapshot-interval to 2000")
+		} else if isSnapshotNode {
+			fatalRecord("snapshot-interval is 0 (disable snapshot) in app.toml file, snapshot nodes must set this", "set snapshot-interval to 2000")
+		}
+	} else {
+		if isValidator {
+			warnRecord("snapshot-interval is set in app.toml file, validator should not set this", "set snapshot-interval to 0 to disable snapshot")
+		} else if app.StateSync.SnapshotInterval < 1000 {
+			warnRecord("snapshot-interval is too low in app.toml file", "set snapshot-interval to 2000")
+		}
+	}
+	if app.StateSync.SnapshotKeepRecent == 0 {
+		fatalRecord("snapshot-keep-recent is 0 in app.toml file, means keep all, unset it", "set snapshot-keep-recent to 2")
+	} else if app.StateSync.SnapshotKeepRecent > 2 {
+		warnRecord("snapshot-keep-recent is too high in app.toml file, wasting disk space", "set snapshot-keep-recent to 2")
 	}
 }
 

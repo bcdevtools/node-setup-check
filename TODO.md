@@ -4,8 +4,8 @@
   - [x] Snapshot node
   - [x] Archival node
 - Check snapshot settings
-  - [ ] Validator node: should disable
-  - [ ] Non-validator: should enable
+  - [x] Validator node: should disable
+  - [x] Non-validator: should enable
 - Check keyring settings
   - [x] Validator node: should have keyring file
   - [x] Non-validator: should not have keyring
