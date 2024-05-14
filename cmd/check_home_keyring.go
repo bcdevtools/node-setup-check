@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/EscanBE/node-setup-check/utils"
+	"github.com/bcdevtools/node-setup-check/utils"
 	"github.com/pkg/errors"
 	"os"
 	"path"

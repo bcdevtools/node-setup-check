@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/EscanBE/node-setup-check/constants"
+	"github.com/bcdevtools/node-setup-check/constants"
 	"github.com/spf13/cobra"
 	"os"
 )

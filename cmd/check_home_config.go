@@ -3,8 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/EscanBE/node-setup-check/types"
-	"github.com/EscanBE/node-setup-check/utils"
+	"github.com/bcdevtools/node-setup-check/types"
+	"github.com/bcdevtools/node-setup-check/utils"
 	"github.com/pelletier/go-toml/v2"
 	"os"
 	"path"

@@ -1,4 +1,4 @@
-module github.com/EscanBE/node-setup-check
+module github.com/bcdevtools/node-setup-check
 
 go 1.22
 

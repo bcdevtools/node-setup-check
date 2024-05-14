@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/EscanBE/node-setup-check/constants"
-	"github.com/EscanBE/node-setup-check/types"
+	"github.com/bcdevtools/node-setup-check/constants"
+	"github.com/bcdevtools/node-setup-check/types"
 	"github.com/spf13/cobra"
 	"os"
 	"strings"

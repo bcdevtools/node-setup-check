@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"encoding/json"
-	"github.com/EscanBE/node-setup-check/types"
-	"github.com/EscanBE/node-setup-check/utils"
+	"github.com/bcdevtools/node-setup-check/types"
+	"github.com/bcdevtools/node-setup-check/utils"
 	"os"
 	"path"
 )

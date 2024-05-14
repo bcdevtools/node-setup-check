@@ -6,9 +6,9 @@ BUILD_DATE	:= $(shell date '+%Y-%m-%d')
 ###                                Build flags                              ###
 ###############################################################################
 
-LD_FLAGS = -X github.com/EscanBE/node-setup-check/constants.VERSION=$(GIT_TAG) \
-            -X github.com/EscanBE/node-setup-check/constants.COMMIT_HASH=$(COMMIT) \
-            -X github.com/EscanBE/node-setup-check/constants.BUILD_DATE=$(BUILD_DATE)
+LD_FLAGS = -X github.com/bcdevtools/node-setup-check/constants.VERSION=$(GIT_TAG) \
+            -X github.com/bcdevtools/node-setup-check/constants.COMMIT_HASH=$(COMMIT) \
+            -X github.com/bcdevtools/node-setup-check/constants.BUILD_DATE=$(BUILD_DATE)
 
 BUILD_FLAGS := -ldflags '$(LD_FLAGS)'
 
