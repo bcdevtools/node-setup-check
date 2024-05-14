@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/bcdevtools/node-setup-check/types"
 	"github.com/bcdevtools/node-setup-check/utils"
 	"github.com/pkg/errors"
 	"os"
@@ -43,21 +44,31 @@ func checkHomeKeyringFile(home string, isValidatorNode bool) {
 	}
 
 	// check file hash
-	fileHashPath := path.Join(keyringFilePath, "hash")
-	_, exists, isDir, err = utils.FileInfo(fileHashPath)
+	fileHashPath := path.Join(keyringFilePath, "keyhash")
+	perm, exists, isDir, err = utils.FileInfo(fileHashPath)
 	if err != nil {
 		exitWithErrorMsgf("ERR: failed to check %s: %v\n", fileHashPath, err)
 		return
 	}
 	if !exists {
 		if isValidatorNode {
-			warnRecord(fmt.Sprintf("hash file is missing on validator node: %s", fileHashPath), "can be ignored if you are not using keyring-file")
+			warnRecord(fmt.Sprintf("keyhash file is missing on validator node: %s", fileHashPath), "can be ignored if you are not using keyring-file")
 		}
 	} else {
 		if isDir {
 			exitWithErrorMsgf("ERR: %s is a directory, it should be a file\n", fileHashPath)
 			return
 		}
+	}
+	filePerm := types.FilePermFrom(perm)
+	if filePerm.Other.AnyPermission() {
+		fatalRecord("keyhash file should not be accessible by others", fmt.Sprintf("chmod 600 %s", fileHashPath))
+	}
+	if filePerm.Group.AnyPermission() {
+		fatalRecord("keyhash file should not be accessible by group", fmt.Sprintf("chmod 600 %s", fileHashPath))
+	}
+	if !filePerm.User.Read {
+		fatalRecord("keyhash file should be readable by owner", fmt.Sprintf("chmod 600 %s", fileHashPath))
 	}
 
 	err = filepath.Walk(keyringFilePath, func(path string, info os.FileInfo, err error) error {
