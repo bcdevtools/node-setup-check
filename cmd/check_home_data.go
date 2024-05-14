@@ -82,19 +82,19 @@ func checkHomeData(home string, nodeType types.NodeType) {
 	} else {
 		if nodeType == types.ValidatorNode {
 			if pvs.Height == "0" {
-				exitWithErrorMsg("priv_validator_state.json is not empty, but height is 0, trouble-shoot the issue")
+				exitWithErrorMsg("ERR: priv_validator_state.json is not empty, but height is 0, trouble-shoot the issue")
 				return
 			}
 			if pvs.Signature == "" {
-				exitWithErrorMsg("priv_validator_state.json is not empty, but signature is empty, trouble-shoot the issue")
+				exitWithErrorMsg("ERR: priv_validator_state.json is not empty, but signature is empty, trouble-shoot the issue")
 				return
 			}
 			if pvs.SignBytes == "" {
-				exitWithErrorMsg("priv_validator_state.json is not empty, but signbytes is empty, trouble-shoot the issue")
+				exitWithErrorMsg("ERR: priv_validator_state.json is not empty, but signbytes is empty, trouble-shoot the issue")
 				return
 			}
 		} else {
-			exitWithErrorMsg("priv_validator_state.json is not empty, it should be empty on non-validator nodes, trouble-shoot the issue")
+			exitWithErrorMsg("ERR: priv_validator_state.json is not empty, it should be empty on non-validator nodes, trouble-shoot the issue")
 			return
 		}
 	}

@@ -98,7 +98,7 @@ func checkHomeKeyringTest(home string, isValidatorNode bool) {
 	}
 
 	if isValidatorNode {
-		exitWithErrorMsgf(fmt.Sprintf("keyring-test directory is found on validator node: %s ! Migrate/backup and remove usage of keyring-test", keyringTestPath))
+		exitWithErrorMsgf("ERR: keyring-test directory is found on validator node: %s ! Migrate/backup and remove usage of keyring-test", keyringTestPath)
 		return
 	} else {
 		fatalRecord("keyring-test should not be used, found at "+keyringTestPath, "migrate/backup and remove usage of keyring-test")
