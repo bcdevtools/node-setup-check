@@ -33,3 +33,7 @@
   - [ ] Maximum inbound & outbound peers, should greater than default
   - [ ] Seeds should be set
   - [ ] Persistent peers should be set
+- [ ] Suggest firewall
+  - [ ] Validator: allow P2P, close other ports
+  - [ ] RPC: allow P2P, RPC, Rest API, Json-RPC
+  - [ ] Snapshot: allow P2P, close other ports
