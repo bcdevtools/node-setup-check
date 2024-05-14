@@ -1,0 +1,35 @@
+- [ ] Check pruning settings
+  - [ ] Validator node
+  - [ ] RPC node
+  - [ ] Snapshot node
+- [ ] Check snapshot settings
+  - [ ] Validator node: should disable
+  - [ ] RPC node: should enable
+  - [ ] Snapshot node: should enable
+- [ ] Check keyring settings
+  - [ ] Validator node: should have keyring file
+  - [ ] RPC node: should not have keyring
+  - [ ] Snapshot node: should not have keyring
+- [ ] Double sign check
+  - [ ] Validator node: 10
+  - [ ] RPC node: 0
+  - [ ] Snapshot node: 0
+- [ ] P2P port check
+  - [ ] Should not be default port 26656
+- [ ] RPC & API & Json-RPC settings
+  - [ ] Validator node
+    - [ ] Enable RPC
+    - [ ] Disable API
+    - [ ] Disable Json-RPC
+  - [ ] RPC node
+    - [ ] Enable RPC
+    - [ ] Enable API
+    - [ ] Enable Json-RPC
+  - [ ] Snapshot node
+    - [ ] Enable RPC
+    - [ ] Disable API
+    - [ ] Disable Json-RPC
+- [ ] Check peers config:
+  - [ ] Maximum inbound & outbound peers, should greater than default
+  - [ ] Seeds should be set
+  - [ ] Persistent peers should be set
