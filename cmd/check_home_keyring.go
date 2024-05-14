@@ -59,16 +59,17 @@ func checkHomeKeyringFile(home string, isValidatorNode bool) {
 			exitWithErrorMsgf("ERR: %s is a directory, it should be a file\n", fileHashPath)
 			return
 		}
-	}
-	filePerm := types.FilePermFrom(perm)
-	if filePerm.Other.AnyPermission() {
-		fatalRecord("keyhash file should not be accessible by others", fmt.Sprintf("chmod 600 %s", fileHashPath))
-	}
-	if filePerm.Group.AnyPermission() {
-		fatalRecord("keyhash file should not be accessible by group", fmt.Sprintf("chmod 600 %s", fileHashPath))
-	}
-	if !filePerm.User.Read {
-		fatalRecord("keyhash file should be readable by owner", fmt.Sprintf("chmod 600 %s", fileHashPath))
+
+		filePerm := types.FilePermFrom(perm)
+		if filePerm.Other.AnyPermission() {
+			fatalRecord("keyhash file should not be accessible by others", fmt.Sprintf("chmod 600 %s", fileHashPath))
+		}
+		if filePerm.Group.AnyPermission() {
+			fatalRecord("keyhash file should not be accessible by group", fmt.Sprintf("chmod 600 %s", fileHashPath))
+		}
+		if !filePerm.User.Read {
+			fatalRecord("keyhash file should be readable by owner", fmt.Sprintf("chmod 600 %s", fileHashPath))
+		}
 	}
 
 	err = filepath.Walk(keyringFilePath, func(path string, info os.FileInfo, err error) error {
