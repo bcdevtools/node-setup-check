@@ -10,26 +10,27 @@
   - [x] Validator node: should have keyring file
   - [x] Non-validator: should not have keyring
 - Double sign check
-  - [ ] Validator node: 10
-  - [ ] Non-validator node: 0
+  - [x] Validator node: 10
+  - [x] Non-validator node: 0
 - P2P port check
-  - [ ] Should not be default port 26656
-- RPC & API & Json-RPC settings
+  - [x] Should not be default port 26656
+- API & Json-RPC settings
   - Validator node
-    - [ ] Enable RPC
     - [x] Disable API
     - [x] Disable Json-RPC
   - RPC node
-    - [ ] Enable RPC
     - [x] Enable API
     - [x] Enable Json-RPC
-  - Snapshot node
-    - [ ] Enable RPC
 - Check peers config:
-  - [ ] Maximum inbound & outbound peers, should greater than default
-  - [ ] Seeds should be set
-  - [ ] Persistent peers should be set
+  - [x] Maximum inbound & outbound peers, should greater than default
+  - [x] Seeds should be set
+  - [x] Persistent peers should be set
 - Suggest firewall
   - [ ] Validator: allow P2P, close other ports
   - [ ] RPC: allow P2P, RPC, Rest API, Json-RPC
   - [ ] Snapshot: allow P2P, close other ports
+  - [ ] Archival: allow P2P, RPC, Rest API, Json-RPC
+- Check tx index config:
+  - [x] Validator: should disable
+  - [x] RPC: should enable
+  - [x] Archival: should enable

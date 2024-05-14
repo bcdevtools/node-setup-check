@@ -10,6 +10,7 @@ import (
 	"path"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 func checkHomeConfig(home string, nodeType types.NodeType) {
@@ -267,6 +268,7 @@ func checkHomeConfigClientToml(configPath string, nodeType types.NodeType) {
 }
 
 func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) {
+	isValidator := nodeType == types.ValidatorNode
 	configTomlFilePath := path.Join(configPath, "config.toml")
 	perm, exists, isDir, err := utils.FileInfo(configTomlFilePath)
 	if err != nil {
@@ -293,6 +295,140 @@ func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) {
 	}
 	if !filePerm.User.Write {
 		fatalRecord("config.toml file is not writable by user", "chmod 644 "+configTomlFilePath)
+	}
+
+	bz, err := os.ReadFile(configTomlFilePath)
+	if err != nil {
+		exitWithErrorMsgf("ERR: failed to read config.toml file at %s: %v\n", configTomlFilePath, err)
+		return
+	}
+
+	type p2pConfigToml struct {
+		Seeds               string `toml:"seeds"`
+		Laddr               string `toml:"laddr"`
+		PersistentPeers     string `toml:"persistent_peers"`
+		MaxNumInboundPeers  int    `toml:"max_num_inbound_peers"`
+		MaxNumOutboundPeers int    `toml:"max_num_outbound_peers"`
+		SeedMode            bool   `toml:"seed_mode"`
+	}
+	type stateSyncConfigToml struct {
+		Enable bool `toml:"enable"`
+	}
+	type consensusConfigToml struct {
+		DoubleSignCheckHeight uint `toml:"double_sign_check_height"`
+		SkipTimeoutCommit     bool `toml:"skip_timeout_commit"`
+	}
+	type txIndexConfigToml struct {
+		Indexer string `toml:"indexer"`
+	}
+	type configToml struct {
+		Moniker   string               `toml:"moniker"`
+		FastSync  bool                 `toml:"fast_sync"`
+		P2P       *p2pConfigToml       `toml:"p2p"`
+		StateSync *stateSyncConfigToml `toml:"statesync"`
+		Consensus *consensusConfigToml `toml:"consensus"`
+		TxIndex   *txIndexConfigToml   `toml:"tx_index"`
+	}
+
+	var config configToml
+	err = toml.Unmarshal(bz, &config)
+	if err != nil {
+		exitWithErrorMsgf("ERR: failed to unmarshal config.toml file at %s: %v\n", configTomlFilePath, err)
+		return
+	}
+
+	if config.Moniker == "" {
+		fatalRecord("moniker is empty in config.toml file", "set moniker to a unique name")
+	}
+	if !config.FastSync {
+		warnRecord("fast_sync is disabled in config.toml file", "enable fast_sync")
+	}
+
+	if config.P2P == nil {
+		exitWithErrorMsgf("ERR: [p2p] section is missing in config.toml file at %s\n", configTomlFilePath)
+		return
+	}
+	if config.P2P.Seeds == "" {
+		warnRecord("seeds is empty in config.toml file", "set seeds to seed nodes")
+	} else if !isValidPeer(config.P2P.Seeds) {
+		warnRecord("invalid seeds format in config.toml file", "correct the format of seeds")
+	}
+	if strings.HasSuffix(config.P2P.Laddr, ":26656") {
+		if isValidator {
+			warnRecord("P2P port should not be the default one (26656) on validator node", "set p2p laddr to a custom port")
+		} else {
+			warnRecord("P2P port should not be the default one (26656)", "set p2p laddr to a custom port")
+		}
+	}
+	if config.P2P.PersistentPeers == "" {
+		warnRecord("persistent_peers is empty in config.toml file", "set persistent_peers to persistent peer nodes")
+	} else if !isValidPeer(config.P2P.PersistentPeers) {
+		warnRecord("invalid persistent_peers format in config.toml file", "correct the format of persistent_peers")
+	}
+	if config.P2P.MaxNumInboundPeers < 60 {
+		warnRecord("max_num_inbound_peers is too low in config.toml file", "increase max_num_inbound_peers to 120")
+	}
+	if config.P2P.MaxNumOutboundPeers <= 30 {
+		warnRecord("max_num_outbound_peers is too low in config.toml file", "increase max_num_outbound_peers to 60")
+	}
+	if config.P2P.SeedMode {
+		warnRecord("seed_mode is enabled in config.toml file", "disable seed_mode")
+	}
+
+	if config.StateSync == nil {
+		exitWithErrorMsgf("ERR: [statesync] section is missing in config.toml file at %s\n", configTomlFilePath)
+		return
+	}
+	if config.StateSync.Enable {
+		warnRecord("statesync is enabled in config.toml file", "disable state sync in section [statesync]")
+	}
+
+	if config.Consensus == nil {
+		exitWithErrorMsgf("ERR: [consensus] section is missing in config.toml file at %s\n", configTomlFilePath)
+		return
+	}
+	if config.Consensus.DoubleSignCheckHeight > 0 {
+		if !isValidator {
+			warnRecord("double_sign_check_height is set in config.toml file, non-validator nodes should not use this", "set double_sign_check_height to 0")
+		}
+	} else {
+		if isValidator {
+			warnRecord("double_sign_check_height is not set in config.toml file, validator nodes should set this", "set double_sign_check_height to 10")
+		}
+	}
+	if config.Consensus.SkipTimeoutCommit {
+		if isValidator {
+			fatalRecord("skip_timeout_commit is enabled in config.toml file, validator nodes should not use this", "disable skip_timeout_commit")
+		} else {
+			warnRecord("skip_timeout_commit is enabled in config.toml file", "disable skip_timeout_commit")
+		}
+	}
+
+	if config.TxIndex == nil {
+		exitWithErrorMsgf("ERR: [tx_index] section is missing in config.toml file at %s\n", configTomlFilePath)
+		return
+	}
+	switch config.TxIndex.Indexer {
+	case "":
+		if isValidator {
+			fatalRecord("indexer is empty in [tx_index] section of config.toml file, validator nodes should set this to \"null\"", "set indexer to \"null\"")
+		} else {
+			warnRecord("indexer is empty in [tx_index] section of config.toml file, non-validator nodes should set this to \"kv\"", "set indexer to \"kv\"")
+		}
+	case "kv":
+		if isValidator {
+			warnRecord("indexer is set to \"kv\" in [tx_index] section of config.toml file, validator nodes should set this to \"null\"", "set indexer to \"null\"")
+		}
+	case "null":
+		if !isValidator {
+			fatalRecord("indexer is set to \"null\" (disable indexer) in [tx_index] section of config.toml file, non-validator nodes should set this to \"kv\"", "set indexer to \"kv\"")
+		}
+	default:
+		if isValidator {
+			fatalRecord(fmt.Sprintf("invalid indexer option \"%s\" in [tx_index] section of config.toml file", config.TxIndex.Indexer), "set indexer to \"null\"")
+		} else {
+			fatalRecord(fmt.Sprintf("invalid indexer option \"%s\" in [tx_index] section of config.toml file", config.TxIndex.Indexer), "set indexer to \"kv\"")
+		}
 	}
 }
 

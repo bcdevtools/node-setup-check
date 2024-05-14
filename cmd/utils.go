@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -42,14 +43,21 @@ func printCheckRecords() {
 
 	for idx, record := range checkRecords {
 		var sb strings.Builder
+		sb.WriteString("\n")
 		sb.WriteString(fmt.Sprintf("%2d. ", idx+1))
 		if record.fatal {
 			sb.WriteString("FATAL: ")
 		}
 		sb.WriteString(record.message)
 		if record.suggest != "" {
-			sb.WriteString(fmt.Sprintf("\n> %s", record.suggest))
+			sb.WriteString(fmt.Sprintf("\n > %s", record.suggest))
 		}
 		printlnStdErr(sb.String())
 	}
+}
+
+var regexPeerPlus = regexp.MustCompile(`^[a-f\d]{40}@(([^:]+)|(\[[a-f\d]*(:+[a-f\d]+)+])):\d{1,5}(,[a-f\d]{40}@(([^:]+)|(\[[a-f\d]*(:+[a-f\d]+)+])):\d{1,5})+$`)
+
+func isValidPeer(peer string) bool {
+	return regexPeerPlus.MatchString(peer)
 }
