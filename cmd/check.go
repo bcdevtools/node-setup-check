@@ -70,6 +70,7 @@ func GetCheckCmd() *cobra.Command {
 				printNotice("Ensure RPC port is open on firewall", "sudo ufw status")
 				printNotice("Ensure Rest-API, Json-RPC ports are not allowed from outside", "sudo ufw status")
 			}
+			printNotice("Check config.toml for 'fast_sync' and 'block_sync', if exists, set to true", "")
 		},
 	}
 

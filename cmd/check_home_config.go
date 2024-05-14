@@ -351,7 +351,6 @@ func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) {
 	}
 	type configToml struct {
 		Moniker   string               `toml:"moniker"`
-		FastSync  bool                 `toml:"fast_sync"`
 		P2P       *p2pConfigToml       `toml:"p2p"`
 		StateSync *stateSyncConfigToml `toml:"statesync"`
 		Consensus *consensusConfigToml `toml:"consensus"`
@@ -367,9 +366,6 @@ func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) {
 
 	if config.Moniker == "" {
 		fatalRecord("moniker is empty in config.toml file", "set moniker to a unique name")
-	}
-	if !config.FastSync {
-		warnRecord("fast_sync is disabled in config.toml file", "enable fast_sync")
 	}
 
 	if config.P2P == nil {
