@@ -7,12 +7,14 @@ const (
 	ValidatorNode
 	RpcNode
 	SnapshotNode
+	ArchivalNode
 )
 
 var nodeTypeNameToType = map[string]NodeType{
 	"validator": ValidatorNode,
 	"rpc":       RpcNode,
 	"snapshot":  SnapshotNode,
+	"archival":  ArchivalNode,
 }
 
 func (t NodeType) String() string {

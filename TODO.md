@@ -1,39 +1,35 @@
-- [ ] Check pruning settings
-  - [ ] Validator node
-  - [ ] RPC node
-  - [ ] Snapshot node
-- [ ] Check snapshot settings
+- Check pruning settings
+  - [x] Validator node
+  - [x] RPC node
+  - [x] Snapshot node
+  - [x] Archival node
+- Check snapshot settings
   - [ ] Validator node: should disable
-  - [ ] RPC node: should enable
-  - [ ] Snapshot node: should enable
-- [ ] Check keyring settings
-  - [ ] Validator node: should have keyring file
-  - [ ] RPC node: should not have keyring
-  - [ ] Snapshot node: should not have keyring
-- [ ] Double sign check
+  - [ ] Non-validator: should enable
+- Check keyring settings
+  - [x] Validator node: should have keyring file
+  - [x] Non-validator: should not have keyring
+- Double sign check
   - [ ] Validator node: 10
-  - [ ] RPC node: 0
-  - [ ] Snapshot node: 0
-- [ ] P2P port check
+  - [ ] Non-validator node: 0
+- P2P port check
   - [ ] Should not be default port 26656
-- [ ] RPC & API & Json-RPC settings
-  - [ ] Validator node
+- RPC & API & Json-RPC settings
+  - Validator node
     - [ ] Enable RPC
-    - [ ] Disable API
-    - [ ] Disable Json-RPC
-  - [ ] RPC node
+    - [x] Disable API
+    - [x] Disable Json-RPC
+  - RPC node
     - [ ] Enable RPC
-    - [ ] Enable API
-    - [ ] Enable Json-RPC
-  - [ ] Snapshot node
+    - [x] Enable API
+    - [x] Enable Json-RPC
+  - Snapshot node
     - [ ] Enable RPC
-    - [ ] Disable API
-    - [ ] Disable Json-RPC
-- [ ] Check peers config:
+- Check peers config:
   - [ ] Maximum inbound & outbound peers, should greater than default
   - [ ] Seeds should be set
   - [ ] Persistent peers should be set
-- [ ] Suggest firewall
+- Suggest firewall
   - [ ] Validator: allow P2P, close other ports
   - [ ] RPC: allow P2P, RPC, Rest API, Json-RPC
   - [ ] Snapshot: allow P2P, close other ports

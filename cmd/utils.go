@@ -42,7 +42,7 @@ func printCheckRecords() {
 
 	for idx, record := range checkRecords {
 		var sb strings.Builder
-		sb.WriteString(fmt.Sprintf("%-2d. ", idx+1))
+		sb.WriteString(fmt.Sprintf("%2d. ", idx+1))
 		if record.fatal {
 			sb.WriteString("FATAL: ")
 		}

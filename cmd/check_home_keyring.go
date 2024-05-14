@@ -29,6 +29,10 @@ func checkHomeKeyringFile(home string, isValidatorNode bool) {
 		return
 	}
 
+	if !isValidatorNode {
+		warnRecord("should not store key on non validator node, found at "+keyringFilePath, "migrate/backup and remove usage of keyring-file")
+	}
+
 	if !isDir {
 		exitWithErrorMsgf("ERR: keyring-file is not a directory: %s", keyringFilePath)
 		return
