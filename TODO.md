@@ -26,10 +26,10 @@
   - [x] Seeds should be set
   - [x] Persistent peers should be set
 - Suggest firewall
-  - [ ] Validator: allow P2P, close other ports
-  - [ ] RPC: allow P2P, RPC, Rest API, Json-RPC
-  - [ ] Snapshot: allow P2P, close other ports
-  - [ ] Archival: allow P2P, RPC, Rest API, Json-RPC
+  - [x] Validator: allow P2P, close other ports
+  - [x] RPC: allow P2P, RPC, Rest API, Json-RPC
+  - [x] Snapshot: allow P2P, close other ports
+  - [x] Archival: allow P2P, RPC, Rest API, Json-RPC
 - Check tx index config:
   - [x] Validator: should disable
   - [x] RPC: should enable

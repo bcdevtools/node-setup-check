@@ -29,6 +29,12 @@ func exitWithErrorMsgf(format string, a ...any) {
 }
 
 func printCheckRecords() {
+	if len(checkRecords) == 0 {
+		return
+	}
+
+	printlnStdErr("\nReports:")
+
 	sort.Slice(checkRecords, func(i, j int) bool {
 		left := checkRecords[i]
 		right := checkRecords[j]

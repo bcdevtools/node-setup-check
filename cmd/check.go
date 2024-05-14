@@ -49,6 +49,27 @@ func GetCheckCmd() *cobra.Command {
 			checkHomeKeyring(home, nodeType == types.ValidatorNode)
 			checkHomeConfig(home, nodeType)
 			checkHomeData(home, nodeType)
+
+			fmt.Println("NOTICE: some tasks need to be checked manually:")
+
+			var countNotice int
+			printNotice := func(message, suggest string) {
+				countNotice++
+				fmt.Printf("%d. %s\n", countNotice, message)
+				if suggest != "" {
+					fmt.Println("> " + suggest)
+				}
+			}
+			printNotice("Ensure P2P port is open on firewall", "sudo ufw status")
+			if nodeType == types.ValidatorNode {
+				printNotice("Ensure RPC port is whitelisted only health-check on firewall", "sudo ufw status")
+				printNotice("Ensure Rest-API, Json-RPC ports are not allowed from outside", "sudo ufw status")
+			} else if nodeType == types.RpcNode || nodeType == types.ArchivalNode {
+				printNotice("Ensure RPC, Rest-API, Json-RPC ports are open on firewall", "sudo ufw status")
+			} else if nodeType == types.SnapshotNode {
+				printNotice("Ensure RPC port is open on firewall", "sudo ufw status")
+				printNotice("Ensure Rest-API, Json-RPC ports are not allowed from outside", "sudo ufw status")
+			}
 		},
 	}
 
