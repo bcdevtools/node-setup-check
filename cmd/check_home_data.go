@@ -93,6 +93,23 @@ func checkHomeData(home string, nodeType types.NodeType) {
 				exitWithErrorMsg("ERR: priv_validator_state.json is not empty, but signbytes is empty, trouble-shoot the issue")
 				return
 			}
+
+			for _, dbDirName := range []string{"application.db", "blockstore.db", "state.db"} {
+				dbDirPath := path.Join(dataPath, dbDirName)
+				perm, exists, isDir, err = utils.FileInfo(dbDirPath)
+				if err != nil {
+					exitWithErrorMsgf("ERR: failed to check %s directory at %s: %v\n", dbDirName, dbDirPath, err)
+					return
+				}
+				if !exists {
+					exitWithErrorMsgf("ERR: priv_validator_state.json is not empty but data dir seem empty, missing %s\n", dbDirPath)
+					return
+				}
+				if !isDir {
+					exitWithErrorMsgf("ERR: %s is not a directory: %s", dbDirName, dbDirPath)
+					return
+				}
+			}
 		} else {
 			exitWithErrorMsg("ERR: priv_validator_state.json is not empty, it should be empty on non-validator nodes, trouble-shoot the issue")
 			return
