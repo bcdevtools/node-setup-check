@@ -3,7 +3,8 @@ package cmd
 import (
 	"fmt"
 	"github.com/bcdevtools/node-setup-check/utils"
-	"github.com/pelletier/go-toml/v2"
+	"github.com/sergeymakinen/go-systemdconf/v2"
+	"github.com/sergeymakinen/go-systemdconf/v2/unit"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,7 +31,7 @@ func checkServiceFileForValidatorOnLinux(home string, serviceFilePath string) {
 		fatalRecord("service file is not a systemd service file", "use .service file extension")
 	}
 	if !strings.HasPrefix(serviceFilePath, "/etc/systemd/system") {
-		fatalRecord("service file is not in /etc/systemd/system directory", "use systemd")
+		warnRecord("service file is not in /etc/systemd/system directory", "use systemd")
 	}
 
 	// check service file content
@@ -59,97 +60,84 @@ func checkServiceFileForValidatorOnLinux(home string, serviceFilePath string) {
 		return
 	}
 
-	var sf serviceFile
-	err = toml.Unmarshal(bz, &sf)
+	var sf unit.ServiceFile
+	err = systemdconf.Unmarshal(bz, &sf)
 	if err != nil {
-		fmt.Println(string(bz))
 		exitWithErrorMsgf("ERR: failed to unmarshal service file: %v\n", err)
 		return
 	}
 
-	if sf.Unit == nil {
-		fatalRecord("service file is missing [Unit] section", "add [Unit] section to service file")
-	} else {
-		if sf.Unit.Description == "" {
-			fatalRecord("service file is missing Description in [Unit] section", "add Description to [Unit] section")
-		}
-		if sf.Unit.After == "" {
-			fatalRecord("service file is missing After in [Unit] section", "add After to [Unit] section")
-		} else if sf.Unit.After != "network-online.target" {
-			fatalRecord("service file is using invalid After in [Unit] section", "change After to network-online.target")
-		}
+	if sf.Unit.Description.String() == "" {
+		fatalRecord("service file is missing Description in [Unit] section", "add Description to [Unit] section")
+	}
+	if sf.Unit.After.String() == "" {
+		fatalRecord("service file is missing After in [Unit] section", "add After to [Unit] section")
+	} else if sf.Unit.After.String() != "network-online.target" {
+		fatalRecord("service file is using invalid After in [Unit] section", "change After to network-online.target")
 	}
 
-	if sf.Service == nil {
-		fatalRecord("service file is missing [Service] section", "add [Service] section to service file")
+	if sf.Service.User.String() == "" {
+		fatalRecord("service file is missing User in [Service] section", "add User to [Service] section")
 	} else {
-		if sf.Service.User == "" {
-			fatalRecord("service file is missing User in [Service] section", "add User to [Service] section")
-		} else {
-			user := strings.TrimSpace(strings.ToLower(sf.Service.User))
-			if user == "root" || user == "ubuntu" {
-				fatalRecord(
-					"service file is using invalid User in [Service] section",
-					"change User to a non-root user",
-				)
-			} else if !strings.Contains(user, "-") {
-				warnRecord(
-					"service file is using invalid User in [Service] section",
-					"use memorable username with hyphen, e.g. \"val-x-testnet\"",
-				)
-			}
-		}
-		if sf.Service.ExecStart == "" {
+		user := strings.TrimSpace(strings.ToLower(sf.Service.User.String()))
+		if user == "root" || user == "ubuntu" {
 			fatalRecord(
-				"service file is missing ExecStart in [Service] section", "add ExecStart to [Service] section",
+				"service file is using invalid User in [Service] section",
+				"change User to a non-root user",
 			)
-		} else if !strings.Contains(sf.Service.ExecStart, "--home") {
-			fatalRecord(
-				"service file is missing --home in ExecStart in [Service] section",
-				"add --home to ExecStart in [Service] section",
-			)
-		} else {
-			_, homeName := filepath.Split(home)
-			if !strings.Contains(sf.Service.ExecStart, homeName) {
-				fatalRecord(
-					fmt.Sprintf("--home in ExecStart in [Service] section might not pointing to the correct home dir \"%s\"", homeName),
-					"change --home to --home="+homeName,
-				)
-			}
-		}
-		if sf.Service.Restart == "" {
-			fatalRecord(
-				"service file is missing Restart in [Service] section",
-				"add Restart=no to [Service] section",
-			)
-		} else if sf.Service.Restart != "no" {
-			fatalRecord(
-				"service file is using invalid Restart in [Service] section, must using 'no' to prevent incident restart",
-				"change Restart=no",
-			)
-		}
-		if sf.Service.RestartSec != "" {
-			fatalRecord(
-				"service file contains RestartSec in [Service] section",
-				"remove RestartSec from [Service] section",
+		} else if !strings.Contains(user, "-") {
+			warnRecord(
+				"service file is using invalid User in [Service] section",
+				"use memorable username with hyphen, e.g. \"val-x-testnet\"",
 			)
 		}
 	}
-
-	if sf.Install == nil {
-		fatalRecord("service file is missing [Install] section", "add [Install] section to service file")
+	if sf.Service.ExecStart.String() == "" {
+		fatalRecord(
+			"service file is missing ExecStart in [Service] section", "add ExecStart to [Service] section",
+		)
+	} else if !strings.Contains(sf.Service.ExecStart.String(), "--home") {
+		fatalRecord(
+			"service file is missing --home in ExecStart in [Service] section",
+			"add --home to ExecStart in [Service] section",
+		)
 	} else {
-		if sf.Install.WantedBy == "" {
+		_, homeName := filepath.Split(home)
+		if !strings.Contains(sf.Service.ExecStart.String(), homeName) {
 			fatalRecord(
-				"service file is missing WantedBy in [Install] section",
-				"add WantedBy=multi-user.target in [Install] section",
-			)
-		} else if sf.Install.WantedBy != "multi-user.target" {
-			fatalRecord(
-				"service file is using invalid WantedBy in [Install] section",
-				"change WantedBy to multi-user.target in [Install] section",
+				fmt.Sprintf("--home in ExecStart in [Service] section might not pointing to the correct home dir \"%s\"", homeName),
+				"change --home to --home="+homeName,
 			)
 		}
+	}
+	if sf.Service.Restart.String() == "" {
+		fatalRecord(
+			"service file is missing Restart in [Service] section",
+			"add Restart=no to [Service] section",
+		)
+	} else if sf.Service.Restart.String() != "no" {
+		fatalRecord(
+			"service file is using invalid Restart in [Service] section, must using 'no' to prevent incident restart",
+			"change Restart=no",
+		)
+	}
+	if sf.Service.RestartSec.String() != "" {
+		fatalRecord(
+			"service file contains RestartSec in [Service] section",
+			"remove RestartSec from [Service] section",
+		)
+	}
+
+	if sf.Install.WantedBy.String() == "" {
+		fatalRecord(
+			"service file is missing WantedBy in [Install] section",
+			"add WantedBy=multi-user.target in [Install] section",
+		)
+	} else if sf.Install.WantedBy.String() != "multi-user.target" {
+		fatalRecord(
+			"service file is using invalid WantedBy in [Install] section",
+			"change WantedBy to multi-user.target in [Install] section",
+		)
 	}
 
 	_, serviceFileName := filepath.Split(serviceFilePath)
