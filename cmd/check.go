@@ -70,7 +70,9 @@ func GetCheckCmd() *cobra.Command {
 			checkHomeKeyring(home, nodeType == types.ValidatorNode)
 			checkHomeConfig(home, nodeType)
 			checkHomeData(home, nodeType)
-			checkServiceFileForValidatorOnLinux(home, serviceFilePath)
+			if nodeType == types.ValidatorNode && isLinux {
+				checkServiceFileForValidatorOnLinux(home, serviceFilePath)
+			}
 
 			fmt.Println("NOTICE: some tasks need to be checked manually:")
 
