@@ -100,6 +100,10 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 		SnapshotInterval   uint `toml:"snapshot-interval"`
 		SnapshotKeepRecent uint `toml:"snapshot-keep-recent"`
 	}
+	type grpcAppToml struct {
+		Enable         bool `toml:"enable"`
+		MaxSendMsgSize uint `toml:"max-send-msg-size"`
+	}
 	type appToml struct {
 		MinimumGasPrices  string            `toml:"minimum-gas-prices"`
 		Pruning           string            `toml:"pruning"`
@@ -111,6 +115,7 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 		Api               *apiAppToml       `toml:"api"`
 		JsonRpc           *jsonRpcAppToml   `toml:"json-rpc"`
 		StateSync         *stateSyncAppToml `toml:"state-sync"`
+		Grpc              *grpcAppToml      `toml:"grpc"`
 	}
 
 	var app appToml
@@ -317,6 +322,22 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	} else if app.StateSync.SnapshotKeepRecent > 2 {
 		warnRecord("snapshot-keep-recent is too high in app.toml file, wasting disk space", "set snapshot-keep-recent to 2")
 	}
+
+	if app.Grpc == nil {
+		exitWithErrorMsgf("ERR: [grpc] section is missing in app.toml file at %s\n", appTomlFilePath)
+		return
+	}
+	if !app.Grpc.Enable {
+		fatalRecord("grpc is disabled in app.toml file, every node should enable it", "set enable to true")
+	}
+	const suggestedMaxSendMsgSizeMb = 100
+	const suggestedMaxSendMsgSizeBytes = suggestedMaxSendMsgSizeMb * 1024 * 1024
+	if app.Grpc.MaxSendMsgSize < suggestedMaxSendMsgSizeBytes {
+		warnRecord("max-send-msg-size is too low in app.toml file", fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb))
+	}
+	if app.Grpc.Enable && app.Grpc.MaxSendMsgSize > suggestedMaxSendMsgSizeBytes*5 {
+		warnRecord("max-send-msg-size is too high in app.toml file", fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb))
+	}
 }
 
 func checkHomeConfigClientToml(configPath string, nodeType types.NodeType) {
@@ -450,7 +471,7 @@ func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) {
 		warnRecord("max_num_outbound_peers is too low in config.toml file", "increase max_num_outbound_peers to 60")
 	}
 	if config.P2P.SeedMode {
-		warnRecord("seed_mode is enabled in config.toml file", "disable seed_mode")
+		warnRecord("seed_mode is enabled in config.toml file", "disable seed_mode if not on purpose")
 	}
 
 	if config.StateSync == nil {
