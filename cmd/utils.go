@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"sort"
@@ -66,4 +67,19 @@ var regexPeerPlus = regexp.MustCompile(`^[a-f\d]{40}@(([^:]+)|(\[[a-f\d]*(:+[a-f
 
 func isValidPeer(peer string) bool {
 	return regexPeerPlus.MatchString(peer)
+}
+
+func isEmptyDir(path string) (bool, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	_, err = f.Readdirnames(1)
+	if err == io.EOF {
+		return true, nil
+	}
+
+	return false, err // Either not empty or error, suits both cases
 }

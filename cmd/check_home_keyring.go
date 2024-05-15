@@ -30,17 +30,24 @@ func checkHomeKeyringFile(home string, isValidatorNode bool) {
 		return
 	}
 
-	if !isValidatorNode {
-		warnRecord("should not store key on non validator node, found at "+keyringFilePath, "migrate/backup and remove usage of keyring-file")
-	}
-
 	if !isDir {
 		exitWithErrorMsgf("ERR: keyring-file is not a directory: %s", keyringFilePath)
 		return
 	}
 
+	if !isValidatorNode {
+		isEmpty, err := isEmptyDir(keyringFilePath)
+		if err != nil {
+			exitWithErrorMsgf("ERR: failed to check emptiness of keyring-file directory at %s: %v\n", keyringFilePath, err)
+			return
+		}
+		if !isEmpty {
+			warnRecord(fmt.Sprintf("should not store key on non-validator node, found at %s", keyringFilePath), "migrate/backup and remove usage of keyring-file")
+		}
+	}
+
 	if perm != 0o700 {
-		fatalRecord(fmt.Sprintf("keyring-file directory has invalid permission %s", perm.String()), fmt.Sprintf("chmod -r 700 %s", keyringFilePath))
+		fatalRecord(fmt.Sprintf("keyring-file directory has invalid permission %s", perm.String()), fmt.Sprintf("chmod -R 700 %s", keyringFilePath))
 	}
 
 	// check file hash
@@ -50,11 +57,7 @@ func checkHomeKeyringFile(home string, isValidatorNode bool) {
 		exitWithErrorMsgf("ERR: failed to check %s: %v\n", fileHashPath, err)
 		return
 	}
-	if !exists {
-		if isValidatorNode {
-			warnRecord(fmt.Sprintf("keyhash file is missing on validator node: %s", fileHashPath), "can be ignored if you are not using keyring-file")
-		}
-	} else {
+	if exists {
 		if isDir {
 			exitWithErrorMsgf("ERR: %s is a directory, it should be a file\n", fileHashPath)
 			return
@@ -70,6 +73,11 @@ func checkHomeKeyringFile(home string, isValidatorNode bool) {
 		if !filePerm.User.Read {
 			fatalRecord("keyhash file should be readable by owner", fmt.Sprintf("chmod 600 %s", fileHashPath))
 		}
+		if !filePerm.User.Write {
+			fatalRecord("keyhash file should be writable by owner", fmt.Sprintf("chmod 600 %s", fileHashPath))
+		}
+	} else if isValidatorNode {
+		warnRecord(fmt.Sprintf("keyhash file is missing on validator node: %s", fileHashPath), "can be ignored if you are not using keyring-file")
 	}
 
 	err = filepath.Walk(keyringFilePath, func(path string, info os.FileInfo, err error) error {
@@ -87,9 +95,9 @@ func checkHomeKeyringFile(home string, isValidatorNode bool) {
 		}
 
 		if isDir && perm != 0o700 {
-			fatalRecord(fmt.Sprintf("keyring-file inner directory must have permission 700 but %s has invalid permission %s", path, perm.String()), fmt.Sprintf("chmod -r 700 %s", keyringFilePath))
-		} else if !isDir && perm != 0o600 {
-			fatalRecord(fmt.Sprintf("keyring-file inner file must have permission 600 but %s has invalid permission %s", path, perm.String()), fmt.Sprintf("chmod -r 600 %s", keyringFilePath))
+			fatalRecord(fmt.Sprintf("keyring-file inner directory must have permission 700 but %s has invalid permission %s", path, perm.String()), fmt.Sprintf("chmod -R 700 %s", keyringFilePath))
+		} else if !isDir && perm != 0o600 && perm != 0o700 {
+			fatalRecord(fmt.Sprintf("keyring-file inner file must have permission 600 or 700 but %s has invalid permission %s", path, perm.String()), fmt.Sprintf("chmod -R 600 %s", keyringFilePath))
 		}
 
 		return nil
@@ -113,19 +121,26 @@ func checkHomeKeyringTest(home string, isValidatorNode bool) {
 		return
 	}
 
-	if isValidatorNode {
-		exitWithErrorMsgf("ERR: keyring-test directory is found on validator node: %s ! Migrate/backup and remove usage of keyring-test\n> rm -rf %s", keyringTestPath, keyringTestPath)
-		return
-	} else {
-		fatalRecord("keyring-test should not be used, found at "+keyringTestPath, "migrate/backup and remove usage of keyring-test")
-	}
-
 	if !isDir {
 		return
 	}
 
 	if perm != 0o700 {
-		fatalRecord(fmt.Sprintf("keyring-test directory has invalid permission %s", perm.String()), fmt.Sprintf("chmod -r 700 %s", keyringTestPath))
+		fatalRecord(fmt.Sprintf("keyring-test directory has invalid permission %s", perm.String()), fmt.Sprintf("chmod -R 700 %s", keyringTestPath))
+	}
+
+	isEmpty, err := isEmptyDir(keyringTestPath)
+	if err != nil {
+		exitWithErrorMsgf("ERR: failed to check emptiness of keyring-test directory at %s: %v\n", keyringTestPath, err)
+		return
+	}
+
+	if !isEmpty {
+		if isValidatorNode {
+			exitWithErrorMsgf("ERR: keyring-test directory is found on validator node: %s ! Migrate/backup and remove usage of keyring-test\n> rm -rf %s", keyringTestPath, keyringTestPath)
+			return
+		}
+		fatalRecord("keyring-test should not be used, found at "+keyringTestPath, "migrate/backup and remove usage of keyring-test")
 	}
 
 	err = filepath.Walk(keyringTestPath, func(path string, info os.FileInfo, err error) error {
@@ -143,9 +158,9 @@ func checkHomeKeyringTest(home string, isValidatorNode bool) {
 		}
 
 		if isDir && perm != 0o700 {
-			fatalRecord(fmt.Sprintf("keyring-test inner directory must have permission 700 but %s has invalid permission %s", path, perm.String()), fmt.Sprintf("chmod -r 700 %s", keyringTestPath))
-		} else if !isDir && perm != 0o600 {
-			fatalRecord(fmt.Sprintf("keyring-test inner file must have permission 600 but %s has invalid permission %s", path, perm.String()), fmt.Sprintf("chmod -r 600 %s", keyringTestPath))
+			fatalRecord(fmt.Sprintf("keyring-test inner directory must have permission 700 but %s has invalid permission %s", path, perm.String()), fmt.Sprintf("chmod -R 700 %s", keyringTestPath))
+		} else if !isDir && perm != 0o600 && perm != 0o700 {
+			fatalRecord(fmt.Sprintf("keyring-test inner file must have permission 600 or 700 but %s has invalid permission %s", path, perm.String()), fmt.Sprintf("chmod -R 600 %s", keyringTestPath))
 		}
 
 		return nil
