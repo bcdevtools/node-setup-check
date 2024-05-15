@@ -78,6 +78,7 @@ func GetCheckCmd() *cobra.Command {
 				printNotice("Ensure Rest-API, Json-RPC ports are not allowed from outside", "sudo ufw status")
 			}
 			printNotice("Check config.toml for 'fast_sync' and 'block_sync', if exists, set to true", "")
+			fmt.Println("WARN: after checked and fixed all issues, re-check again using this tool before running node, otherwise you probably miss something")
 		},
 	}
 
