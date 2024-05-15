@@ -51,3 +51,6 @@ go install github.com/bcdevtools/node-setup-check/cmd/nodesc@latest
     - [x] Validator: should disable
     - [x] RPC: should enable
     - [x] Archival: should enable
+- Check service
+    - [x] Do not auto restart
+    - [x] Do not enable on boot

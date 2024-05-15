@@ -8,13 +8,15 @@ import (
 	"github.com/spf13/cobra"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 )
 
 const (
-	flagType = "type"
+	flagType        = "type"
+	flagServiceFile = "service-file"
 )
 
 var waitGroup sync.WaitGroup
@@ -37,6 +39,18 @@ func GetCheckCmd() *cobra.Command {
 			nodeType := types.NodeTypeFromString(typeName)
 			if nodeType == types.UnspecifiedNodeType {
 				exitWithErrorMsgf("ERR: Invalid node type, can be either %s\n", validTargetValues)
+				return
+			}
+
+			isLinux := runtime.GOOS == "linux"
+
+			serviceFilePath, _ := cmd.Flags().GetString(flagServiceFile)
+			if nodeType == types.ValidatorNode && serviceFilePath == "" && isLinux {
+				exitWithErrorMsgf("ERR: service file is required on Linux to check validator setting\n")
+				return
+			} else if nodeType != types.ValidatorNode && serviceFilePath != "" {
+				exitWithErrorMsgf("ERR: remove flag \"--%s\", only be used for validator on Linux\n", flagServiceFile)
+				return
 			}
 
 			defer func() {
@@ -56,6 +70,7 @@ func GetCheckCmd() *cobra.Command {
 			checkHomeKeyring(home, nodeType == types.ValidatorNode)
 			checkHomeConfig(home, nodeType)
 			checkHomeData(home, nodeType)
+			checkServiceFileForValidatorOnLinux(home, serviceFilePath)
 
 			fmt.Println("NOTICE: some tasks need to be checked manually:")
 
@@ -83,6 +98,7 @@ func GetCheckCmd() *cobra.Command {
 	}
 
 	cmd.Flags().String(flagType, "", fmt.Sprintf("type of node to check, can be: %s", validTargetValues))
+	cmd.Flags().String(flagServiceFile, "", "path to the service file to check, required for validator node on Linux")
 
 	return cmd
 }
