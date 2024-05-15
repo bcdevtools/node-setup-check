@@ -63,6 +63,7 @@ func checkServiceFileForValidatorOnLinux(home string, serviceFilePath string) {
 	err = toml.Unmarshal(bz, &sf)
 	if err != nil {
 		exitWithErrorMsgf("ERR: failed to unmarshal service file: %v\n", err)
+		fmt.Println(string(bz))
 		return
 	}
 
