@@ -35,24 +35,6 @@ func checkServiceFileForValidatorOnLinux(home string, serviceFilePath string) {
 	}
 
 	// check service file content
-	type unitServiceFile struct {
-		Description string `toml:"Description"`
-		After       string `toml:"After"`
-	}
-	type serviceServiceFile struct {
-		User       string `toml:"User"`
-		ExecStart  string `toml:"ExecStart"`
-		Restart    string `toml:"Restart"`
-		RestartSec string `toml:"RestartSec"`
-	}
-	type installServiceFile struct {
-		WantedBy string `toml:"WantedBy"`
-	}
-	type serviceFile struct {
-		Unit    *unitServiceFile    `toml:"Unit"`
-		Service *serviceServiceFile `toml:"Service"`
-		Install *installServiceFile `toml:"Install"`
-	}
 
 	bz, err := os.ReadFile(serviceFilePath)
 	if err != nil {
@@ -66,6 +48,13 @@ func checkServiceFileForValidatorOnLinux(home string, serviceFilePath string) {
 		exitWithErrorMsgf("ERR: failed to unmarshal service file: %v\n", err)
 		return
 	}
+
+	originalRecordsCount := len(checkRecords)
+	defer func() {
+		if len(checkRecords) > originalRecordsCount {
+			warnRecord("remember to reload service after updated service file", "sudo systemctl daemon-reload")
+		}
+	}()
 
 	if sf.Unit.Description.String() == "" {
 		fatalRecord("service file is missing Description in [Unit] section", "add Description to [Unit] section")
@@ -148,6 +137,9 @@ func checkServiceFileForValidatorOnLinux(home string, serviceFilePath string) {
 		return
 	}
 	if exists {
-		fatalRecord("service file is already enabled", "sudo systemctl disable "+serviceFileName)
+		fatalRecord(
+			"service file is already enabled, validator must disable service automatically run at startup",
+			"sudo systemctl disable "+serviceFileName,
+		)
 	}
 }
