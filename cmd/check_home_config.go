@@ -236,7 +236,7 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 			return
 		}
 		if int64(app.MinRetainsBlock) < pruningKeepRecent {
-			warnRecord(fmt.Sprintf("min-retain-blocks should be equals to pruning-keep-recent (%s) in app.toml file", app.PruningInterval), fmt.Sprintf("set min-retain-blocks to \"%s\"", app.PruningKeepRecent))
+			warnRecord(fmt.Sprintf("min-retain-blocks should be equals to pruning-keep-recent (%s) in app.toml file", app.PruningKeepRecent), fmt.Sprintf("set min-retain-blocks to \"%s\"", app.PruningKeepRecent))
 		}
 	} else if app.Pruning == constants.PruningNothing {
 		if app.MinRetainsBlock != 0 {
