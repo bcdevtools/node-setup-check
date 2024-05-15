@@ -43,10 +43,11 @@ func GetCheckCmd() *cobra.Command {
 			}
 
 			isLinux := runtime.GOOS == "linux"
+			requireServiceFileForValidatorOnLinux := nodeType == types.ValidatorNode && isLinux
 
 			serviceFilePath, _ := cmd.Flags().GetString(flagServiceFile)
-			if nodeType == types.ValidatorNode && serviceFilePath == "" && isLinux {
-				exitWithErrorMsgf("ERR: service file is required on Linux to check validator setting\n")
+			if requireServiceFileForValidatorOnLinux && serviceFilePath == "" {
+				exitWithErrorMsgf("ERR: --%s is required on Linux to check validator setting\n", flagServiceFile)
 				return
 			} else if nodeType != types.ValidatorNode && serviceFilePath != "" {
 				exitWithErrorMsgf("ERR: remove flag \"--%s\", only be used for validator on Linux\n", flagServiceFile)
@@ -70,7 +71,7 @@ func GetCheckCmd() *cobra.Command {
 			checkHomeKeyring(home, nodeType == types.ValidatorNode)
 			checkHomeConfig(home, nodeType)
 			checkHomeData(home, nodeType)
-			if nodeType == types.ValidatorNode && isLinux {
+			if requireServiceFileForValidatorOnLinux {
 				checkServiceFileForValidatorOnLinux(home, serviceFilePath)
 			}
 
