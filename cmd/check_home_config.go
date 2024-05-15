@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bcdevtools/node-setup-check/constants"
 	"github.com/bcdevtools/node-setup-check/types"
 	"github.com/bcdevtools/node-setup-check/utils"
 	"github.com/pelletier/go-toml/v2"
@@ -104,6 +105,7 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 		PruningInterval   string            `toml:"pruning-interval"`
 		HaltHeight        int64             `toml:"halt-height"`
 		HaltTime          int64             `toml:"halt-time"`
+		MinRetainsBlock   uint              `toml:"min-retain-blocks"`
 		Api               *apiAppToml       `toml:"api"`
 		JsonRpc           *jsonRpcAppToml   `toml:"json-rpc"`
 		StateSync         *stateSyncAppToml `toml:"state-sync"`
@@ -131,7 +133,7 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	}
 
 	switch app.Pruning {
-	case "default":
+	case constants.PruningDefault:
 		if isValidator {
 			warnRecord("pruning set to 'default' in app.toml file", "set pruning to everything for validator")
 		} else if isSnapshotNode {
@@ -139,13 +141,13 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 		} else if isArchivalNode {
 			fatalRecord("pruning set to 'default' in app.toml file, archival node should be configured properly for archival purpose", "set pruning to nothing")
 		}
-	case "nothing":
+	case constants.PruningNothing:
 		if isValidator {
 			fatalRecord("pruning set to 'nothing' in app.toml file, validator should not use this option", "set pruning to everything")
 		} else if isSnapshotNode {
 			fatalRecord("pruning set to 'nothing' in app.toml file, snapshot not should be configured properly for snapshot purpose", "set pruning to custom 100/10")
 		}
-	case "everything":
+	case constants.PruningEverything:
 		if isValidator {
 			//
 		} else if isArchivalNode {
@@ -153,7 +155,7 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 		} else {
 			fatalRecord("pruning set to 'everything' in app.toml file, non-validator should not use this option", "set pruning to default or custom")
 		}
-	case "custom":
+	case constants.PruningCustom:
 		if isArchivalNode {
 			fatalRecord("pruning set to 'custom' in app.toml file, archival node must not use this option", "set pruning to nothing")
 		}
@@ -166,15 +168,17 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 		} else {
 			fatalRecord(msg, "set pruning to default or custom")
 		}
+		exitWithErrorMsgf("ERR: invalid pruning option in app.toml file: %s\n", appTomlFilePath, app.Pruning)
+		return
 	}
 
 	if isSnapshotNode {
-		if app.Pruning != "custom" || app.PruningKeepRecent != "100" || app.PruningInterval != "10" {
+		if app.Pruning != constants.PruningCustom || app.PruningKeepRecent != "100" || app.PruningInterval != "10" {
 			warnRecord("snapshot node should use pruning custom 100/10 in app.toml file", "set pruning to custom 100/10")
 		}
 	}
 
-	if app.Pruning == "custom" {
+	if app.Pruning == constants.PruningCustom {
 		if app.PruningKeepRecent != "" {
 			pruningKeepRecent, err := strconv.ParseInt(app.PruningKeepRecent, 10, 64)
 			if err != nil {
@@ -214,6 +218,29 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 
 	if app.HaltTime > 0 {
 		warnRecord(fmt.Sprintf("halt-time is set to %d in app.toml file", app.HaltTime), "unset halt-time unless on purpose")
+	}
+
+	if app.Pruning == constants.PruningDefault {
+		if app.MinRetainsBlock < 362880 {
+			warnRecord("min-retain-blocks should be set to 362880 if pruning \"default\" in app.toml file", "set min-retain-blocks to 362880")
+		}
+	} else if app.Pruning == constants.PruningEverything {
+		if app.MinRetainsBlock < 2 {
+			warnRecord("min-retain-blocks should be set to 2 if pruning \"default\" in app.toml file", "set min-retain-blocks to 362880")
+		}
+	} else if app.Pruning == constants.PruningCustom {
+		pruningKeepRecent, err := strconv.ParseInt(app.PruningKeepRecent, 10, 64)
+		if err != nil {
+			exitWithErrorMsgf("ERR: failed to parse pruning-keep-recent in app.toml file: %v\n", err)
+			return
+		}
+		if int64(app.MinRetainsBlock) < pruningKeepRecent {
+			warnRecord(fmt.Sprintf("min-retain-blocks should be equals to pruning-keep-recent (%s) in app.toml file", app.PruningInterval), fmt.Sprintf("set min-retain-blocks to \"%s\"", app.PruningKeepRecent))
+		}
+	} else if app.Pruning == constants.PruningNothing {
+		if app.MinRetainsBlock != 0 {
+			fatalRecord("min-retain-blocks must be 0 if pruning \"nothing\" (archival node) in app.toml file", "set min-retain-blocks to 0")
+		}
 	}
 
 	if app.Api == nil {
