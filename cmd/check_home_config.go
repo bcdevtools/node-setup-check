@@ -103,6 +103,7 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 		PruningKeepRecent string            `toml:"pruning-keep-recent"`
 		PruningInterval   string            `toml:"pruning-interval"`
 		HaltHeight        int64             `toml:"halt-height"`
+		HaltTime          int64             `toml:"halt-time"`
 		Api               *apiAppToml       `toml:"api"`
 		JsonRpc           *jsonRpcAppToml   `toml:"json-rpc"`
 		StateSync         *stateSyncAppToml `toml:"state-sync"`
@@ -208,7 +209,11 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	}
 
 	if app.HaltHeight > 0 {
-		warnRecord(fmt.Sprintf("halt-height is set to %d in app.toml file", app.HaltHeight), "unset halt-height")
+		warnRecord(fmt.Sprintf("halt-height is set to %d in app.toml file", app.HaltHeight), "unset halt-height unless on purpose")
+	}
+
+	if app.HaltTime > 0 {
+		warnRecord(fmt.Sprintf("halt-time is set to %d in app.toml file", app.HaltTime), "unset halt-time unless on purpose")
 	}
 
 	if app.Api == nil {
