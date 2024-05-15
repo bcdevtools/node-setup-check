@@ -41,15 +41,16 @@ func checkHomeConfig(home string, nodeType types.NodeType) {
 		fatalRecord("config directory is not fully accessible by user", "chmod u+rwx "+configPath)
 	}
 
-	checkHomeConfigAppToml(configPath, nodeType)
-	checkHomeConfigClientToml(configPath, nodeType)
-	checkHomeConfigConfigToml(configPath, nodeType)
-	checkHomeConfigGenesisJson(configPath, nodeType)
-	checkHomeConfigNodeKeyJson(configPath, nodeType)
-	checkHomeConfigPrivValidatorKeyJson(configPath, nodeType)
+	appToml := checkHomeConfigAppToml(configPath, nodeType)
+	checkHomeConfigClientToml(configPath)
+	configToml := checkHomeConfigConfigToml(configPath, nodeType)
+	checkHomeConfigGenesisJson(configPath)
+	checkHomeConfigNodeKeyJson(configPath)
+	checkHomeConfigPrivValidatorKeyJson(configPath)
+	checkHomeConfigConfigTomlAndAppToml(nodeType, configToml, appToml)
 }
 
-func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
+func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) *types.AppToml {
 	isValidator := nodeType == types.ValidatorNode
 	isRpc := nodeType == types.RpcNode
 	isSnapshotNode := nodeType == types.SnapshotNode
@@ -58,15 +59,15 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	perm, exists, isDir, err := utils.FileInfo(appTomlFilePath)
 	if err != nil {
 		exitWithErrorMsgf("ERR: failed to check app.toml file at %s: %v\n", appTomlFilePath, err)
-		return
+		return nil
 	}
 	if !exists {
 		exitWithErrorMsgf("ERR: app.toml file does not exist: %s\n", appTomlFilePath)
-		return
+		return nil
 	}
 	if isDir {
 		exitWithErrorMsgf("ERR: app.toml is a directory, it should be a file: %s\n", appTomlFilePath)
-		return
+		return nil
 	}
 	filePerm := types.FilePermFrom(perm)
 	if filePerm.Other.Write {
@@ -85,45 +86,14 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	bz, err := os.ReadFile(appTomlFilePath)
 	if err != nil {
 		exitWithErrorMsgf("ERR: failed to read app.toml file at %s: %v\n", appTomlFilePath, err)
-		return
+		return nil
 	}
 
-	type apiAppToml struct {
-		Enable  bool `toml:"enable"`
-		Swagger bool `toml:"swagger"`
-	}
-	type jsonRpcAppToml struct {
-		Enable        bool `toml:"enable"`
-		EnableIndexer bool `toml:"enable-indexer"`
-	}
-	type stateSyncAppToml struct {
-		SnapshotInterval   uint `toml:"snapshot-interval"`
-		SnapshotKeepRecent uint `toml:"snapshot-keep-recent"`
-	}
-	type grpcAppToml struct {
-		Enable         bool   `toml:"enable"`
-		Address        string `toml:"address"`
-		MaxSendMsgSize string `toml:"max-send-msg-size"`
-	}
-	type appToml struct {
-		MinimumGasPrices  string            `toml:"minimum-gas-prices"`
-		Pruning           string            `toml:"pruning"`
-		PruningKeepRecent string            `toml:"pruning-keep-recent"`
-		PruningInterval   string            `toml:"pruning-interval"`
-		HaltHeight        int64             `toml:"halt-height"`
-		HaltTime          int64             `toml:"halt-time"`
-		MinRetainsBlock   uint              `toml:"min-retain-blocks"`
-		Api               *apiAppToml       `toml:"api"`
-		JsonRpc           *jsonRpcAppToml   `toml:"json-rpc"`
-		StateSync         *stateSyncAppToml `toml:"state-sync"`
-		Grpc              *grpcAppToml      `toml:"grpc"`
-	}
-
-	var app appToml
+	var app types.AppToml
 	err = toml.Unmarshal(bz, &app)
 	if err != nil {
 		exitWithErrorMsgf("ERR: failed to unmarshal app.toml file at %s: %v\n", appTomlFilePath, err)
-		return
+		return nil
 	}
 
 	if app.MinimumGasPrices == "" {
@@ -143,25 +113,46 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	switch app.Pruning {
 	case constants.PruningDefault:
 		if isValidator {
-			warnRecord("pruning set to 'default' in app.toml file", "set pruning to everything for validator")
+			warnRecord(
+				"pruning set to 'default' in app.toml file",
+				"set pruning to everything for validator",
+			)
 		} else if isSnapshotNode {
-			warnRecord("pruning set to 'default' in app.toml file, snapshot not should be configured properly for snapshot purpose", "set pruning to custom 100/10")
+			warnRecord(
+				"pruning set to 'default' in app.toml file, snapshot not should be configured properly for snapshot purpose",
+				"set pruning to custom 100/10",
+			)
 		} else if isArchivalNode {
-			fatalRecord("pruning set to 'default' in app.toml file, archival node should be configured properly for archival purpose", "set pruning to nothing")
+			fatalRecord(
+				"pruning set to 'default' in app.toml file, archival node should be configured properly for archival purpose",
+				"set pruning to nothing",
+			)
 		}
 	case constants.PruningNothing:
 		if isValidator {
-			fatalRecord("pruning set to 'nothing' in app.toml file, validator should not use this option", "set pruning to everything")
+			fatalRecord(
+				"pruning set to 'nothing' in app.toml file, validator should not use this option",
+				"set pruning to everything",
+			)
 		} else if isSnapshotNode {
-			fatalRecord("pruning set to 'nothing' in app.toml file, snapshot not should be configured properly for snapshot purpose", "set pruning to custom 100/10")
+			fatalRecord(
+				"pruning set to 'nothing' in app.toml file, snapshot not should be configured properly for snapshot purpose",
+				"set pruning to custom 100/10",
+			)
 		}
 	case constants.PruningEverything:
 		if isValidator {
 			//
 		} else if isArchivalNode {
-			fatalRecord("pruning set to 'everything' in app.toml file, archival node must not use this option", "set pruning to nothing")
+			fatalRecord(
+				"pruning set to 'everything' in app.toml file, archival node must not use this option",
+				"set pruning to nothing",
+			)
 		} else {
-			fatalRecord("pruning set to 'everything' in app.toml file, non-validator should not use this option", "set pruning to default or custom")
+			fatalRecord(
+				"pruning set to 'everything' in app.toml file, non-validator should not use this option",
+				"set pruning to default or custom",
+			)
 		}
 	case constants.PruningCustom:
 		if isArchivalNode {
@@ -177,7 +168,7 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 			fatalRecord(msg, "set pruning to default or custom")
 		}
 		exitWithErrorMsgf("ERR: invalid pruning option in app.toml file: %s\n", appTomlFilePath, app.Pruning)
-		return
+		return nil
 	}
 
 	if isSnapshotNode {
@@ -191,7 +182,7 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 			pruningKeepRecent, err := strconv.ParseInt(app.PruningKeepRecent, 10, 64)
 			if err != nil {
 				exitWithErrorMsgf("ERR: failed to parse pruning-keep-recent in app.toml file: %v\n", err)
-				return
+				return nil
 			}
 
 			if pruningKeepRecent > 400_000 {
@@ -207,7 +198,7 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 			pruningInterval, err := strconv.ParseInt(app.PruningInterval, 10, 64)
 			if err != nil {
 				exitWithErrorMsgf("ERR: failed to parse pruning-interval in app.toml file: %v\n", err)
-				return
+				return nil
 			}
 
 			if pruningInterval > 10_000 {
@@ -230,30 +221,42 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 
 	if app.Pruning == constants.PruningDefault {
 		if app.MinRetainsBlock < 362880 {
-			warnRecord("min-retain-blocks should be set to 362880 if pruning \"default\" in app.toml file", "set min-retain-blocks to 362880")
+			warnRecord(
+				"min-retain-blocks should be set to 362880 if pruning \"default\" in app.toml file",
+				"set min-retain-blocks to 362880",
+			)
 		}
 	} else if app.Pruning == constants.PruningEverything {
 		if app.MinRetainsBlock < 2 {
-			warnRecord("min-retain-blocks should be set to 2 if pruning \"everything\" in app.toml file", "set min-retain-blocks to 2")
+			warnRecord(
+				"min-retain-blocks should be set to 2 if pruning \"everything\" in app.toml file",
+				"set min-retain-blocks to 2",
+			)
 		}
 	} else if app.Pruning == constants.PruningCustom {
-		pruningKeepRecent, err := strconv.ParseInt(app.PruningKeepRecent, 10, 64)
+		pruningKeepRecent, err := strconv.ParseUint(app.PruningKeepRecent, 10, 64)
 		if err != nil {
 			exitWithErrorMsgf("ERR: failed to parse pruning-keep-recent in app.toml file: %v\n", err)
-			return
+			return nil
 		}
-		if int64(app.MinRetainsBlock) < pruningKeepRecent {
-			warnRecord(fmt.Sprintf("min-retain-blocks should be equals to pruning-keep-recent (%s) in app.toml file", app.PruningKeepRecent), fmt.Sprintf("set min-retain-blocks to \"%s\"", app.PruningKeepRecent))
+		if uint64(app.MinRetainsBlock) < pruningKeepRecent {
+			warnRecord(
+				fmt.Sprintf("min-retain-blocks should be equals to pruning-keep-recent (%s) in app.toml file", app.PruningKeepRecent),
+				fmt.Sprintf("set min-retain-blocks to \"%s\"", app.PruningKeepRecent),
+			)
 		}
 	} else if app.Pruning == constants.PruningNothing {
 		if app.MinRetainsBlock != 0 {
-			fatalRecord("min-retain-blocks must be 0 if pruning \"nothing\" (archival node) in app.toml file", "set min-retain-blocks to 0")
+			fatalRecord(
+				"min-retain-blocks must be 0 if pruning \"nothing\" (archival node) in app.toml file",
+				"set min-retain-blocks to 0",
+			)
 		}
 	}
 
 	if app.Api == nil {
 		exitWithErrorMsgf("ERR: [api] section is missing in app.toml file at %s\n", appTomlFilePath)
-		return
+		return nil
 	}
 	if app.Api.Enable {
 		if isValidator {
@@ -290,43 +293,70 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 
 		if app.JsonRpc.EnableIndexer {
 			if isValidator {
-				warnRecord("json-rpc custom EVM-indexer is enabled in app.toml file, validator should disable it", "set enable-indexer to false")
+				warnRecord(
+					"json-rpc custom EVM-indexer is enabled in app.toml file, validator should disable it",
+					"set enable-indexer to false",
+				)
 			}
 		} else {
 			if isRpc {
-				fatalRecord("json-rpc custom EVM-indexer is disabled in app.toml file, rpc node should enable it", "set enable-indexer to true")
+				fatalRecord(
+					"json-rpc custom EVM-indexer is disabled in app.toml file, rpc node should enable it",
+					"set enable-indexer to true",
+				)
 			} else if isArchivalNode {
-				warnRecord("json-rpc custom EVM-indexer is disabled in app.toml file, archival node should enable it", "set enable-indexer to true")
+				warnRecord(
+					"json-rpc custom EVM-indexer is disabled in app.toml file, archival node should enable it",
+					"set enable-indexer to true",
+				)
 			}
 		}
 	}
 
 	if app.StateSync == nil {
 		exitWithErrorMsgf("ERR: [state-sync] section is missing in app.toml file at %s\n", appTomlFilePath)
-		return
+		return nil
 	}
 	if app.StateSync.SnapshotInterval == 0 {
 		if isRpc {
-			warnRecord("snapshot-interval is 0 (disable snapshot) in app.toml file, RPC nodes should set this", "set snapshot-interval to 2000")
+			warnRecord(
+				"snapshot-interval is 0 (disable snapshot) in app.toml file, RPC nodes should set this",
+				"set snapshot-interval to 2000",
+			)
 		} else if isSnapshotNode {
-			fatalRecord("snapshot-interval is 0 (disable snapshot) in app.toml file, snapshot nodes must set this", "set snapshot-interval to 2000")
+			fatalRecord(
+				"snapshot-interval is 0 (disable snapshot) in app.toml file, snapshot nodes must set this",
+				"set snapshot-interval to 2000",
+			)
 		}
 	} else {
 		if isValidator {
-			warnRecord("snapshot-interval is set in app.toml file, validator should not set this", "set snapshot-interval to 0 to disable snapshot")
+			warnRecord(
+				"snapshot-interval is set in app.toml file, validator should not set this",
+				"set snapshot-interval to 0 to disable snapshot",
+			)
 		} else if app.StateSync.SnapshotInterval < 1000 {
-			warnRecord("snapshot-interval is too low in app.toml file", "set snapshot-interval to 2000")
+			warnRecord(
+				"snapshot-interval is too low in app.toml file",
+				"set snapshot-interval to 2000",
+			)
 		}
 	}
 	if app.StateSync.SnapshotKeepRecent == 0 {
-		fatalRecord("snapshot-keep-recent is 0 in app.toml file, means keep all, unset it", "set snapshot-keep-recent to 2")
+		fatalRecord(
+			"snapshot-keep-recent is 0 in app.toml file, means keep all, unset it",
+			"set snapshot-keep-recent to 2",
+		)
 	} else if app.StateSync.SnapshotKeepRecent > 2 {
-		warnRecord("snapshot-keep-recent is too high in app.toml file, wasting disk space", "set snapshot-keep-recent to 2")
+		warnRecord(
+			"snapshot-keep-recent is too high in app.toml file, wasting disk space",
+			"set snapshot-keep-recent to 2",
+		)
 	}
 
 	if app.Grpc == nil {
 		exitWithErrorMsgf("ERR: [grpc] section is missing in app.toml file at %s\n", appTomlFilePath)
-		return
+		return nil
 	}
 	if app.Grpc.Enable {
 		if isValidator {
@@ -338,7 +368,10 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 		} else if isSnapshotNode {
 			// no problem
 		} else {
-			fatalRecord("grpc is disabled in app.toml file, non-validator node should enable it", "set [grpc] enable to true")
+			fatalRecord(
+				"grpc is disabled in app.toml file, non-validator node should enable it",
+				"set [grpc] enable to true",
+			)
 		}
 	}
 	const suggestedMaxSendMsgSizeMb = 100
@@ -346,24 +379,35 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	maxSendMsgSize, err := strconv.ParseInt(app.Grpc.MaxSendMsgSize, 10, 64)
 	if err != nil {
 		exitWithErrorMsgf("ERR: failed to parse max-send-msg-size \"%s\" in app.toml file: %v\n", app.Grpc.MaxSendMsgSize, err)
-		return
+		return nil
 	}
 	if maxSendMsgSize < suggestedMaxSendMsgSizeBytes {
-		warnRecord("max-send-msg-size is too low in app.toml file", fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb))
+		warnRecord(
+			"max-send-msg-size is too low in app.toml file",
+			fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb),
+		)
 	}
 	if isRpc || isArchivalNode {
 		if app.Grpc.Enable {
 			if maxSendMsgSize > suggestedMaxSendMsgSizeBytes*5 {
-				warnRecord("max-send-msg-size is too high in app.toml file", fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb))
+				warnRecord(
+					"max-send-msg-size is too high in app.toml file",
+					fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb),
+				)
 			}
 			if strings.HasSuffix(app.Grpc.Address, ":9090") {
-				warnRecord("GRPC port should not be the default one (9090) on RPC and Archival node", "set [grpc] address to a custom port")
+				warnRecord(
+					"GRPC port should not be the default one (9090) on RPC and Archival node",
+					"set [grpc] address to a custom port",
+				)
 			}
 		}
 	}
+
+	return &app
 }
 
-func checkHomeConfigClientToml(configPath string, nodeType types.NodeType) {
+func checkHomeConfigClientToml(configPath string) {
 	clientTomlFilePath := path.Join(configPath, "client.toml")
 	perm, exists, isDir, err := utils.FileInfo(clientTomlFilePath)
 	if err != nil {
@@ -393,21 +437,21 @@ func checkHomeConfigClientToml(configPath string, nodeType types.NodeType) {
 	}
 }
 
-func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) {
+func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) *types.ConfigToml {
 	isValidator := nodeType == types.ValidatorNode
 	configTomlFilePath := path.Join(configPath, "config.toml")
 	perm, exists, isDir, err := utils.FileInfo(configTomlFilePath)
 	if err != nil {
 		exitWithErrorMsgf("ERR: failed to check config.toml file at %s: %v\n", configTomlFilePath, err)
-		return
+		return nil
 	}
 	if !exists {
 		exitWithErrorMsgf("ERR: config.toml file does not exist: %s\n", configTomlFilePath)
-		return
+		return nil
 	}
 	if isDir {
 		exitWithErrorMsgf("ERR: config.toml is a directory, it should be a file: %s\n", configTomlFilePath)
-		return
+		return nil
 	}
 	filePerm := types.FilePermFrom(perm)
 	if filePerm.Other.Write {
@@ -426,40 +470,14 @@ func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) {
 	bz, err := os.ReadFile(configTomlFilePath)
 	if err != nil {
 		exitWithErrorMsgf("ERR: failed to read config.toml file at %s: %v\n", configTomlFilePath, err)
-		return
+		return nil
 	}
 
-	type p2pConfigToml struct {
-		Seeds               string `toml:"seeds"`
-		Laddr               string `toml:"laddr"`
-		PersistentPeers     string `toml:"persistent_peers"`
-		MaxNumInboundPeers  int    `toml:"max_num_inbound_peers"`
-		MaxNumOutboundPeers int    `toml:"max_num_outbound_peers"`
-		SeedMode            bool   `toml:"seed_mode"`
-	}
-	type stateSyncConfigToml struct {
-		Enable bool `toml:"enable"`
-	}
-	type consensusConfigToml struct {
-		DoubleSignCheckHeight uint `toml:"double_sign_check_height"`
-		SkipTimeoutCommit     bool `toml:"skip_timeout_commit"`
-	}
-	type txIndexConfigToml struct {
-		Indexer string `toml:"indexer"`
-	}
-	type configToml struct {
-		Moniker   string               `toml:"moniker"`
-		P2P       *p2pConfigToml       `toml:"p2p"`
-		StateSync *stateSyncConfigToml `toml:"statesync"`
-		Consensus *consensusConfigToml `toml:"consensus"`
-		TxIndex   *txIndexConfigToml   `toml:"tx_index"`
-	}
-
-	var config configToml
+	var config types.ConfigToml
 	err = toml.Unmarshal(bz, &config)
 	if err != nil {
 		exitWithErrorMsgf("ERR: failed to unmarshal config.toml file at %s: %v\n", configTomlFilePath, err)
-		return
+		return nil
 	}
 
 	if config.Moniker == "" {
@@ -468,7 +486,7 @@ func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) {
 
 	if config.P2P == nil {
 		exitWithErrorMsgf("ERR: [p2p] section is missing in config.toml file at %s\n", configTomlFilePath)
-		return
+		return nil
 	}
 	if config.P2P.Seeds == "" {
 		warnRecord("seeds is empty in config.toml file", "set seeds to seed nodes")
@@ -499,7 +517,7 @@ func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) {
 
 	if config.StateSync == nil {
 		exitWithErrorMsgf("ERR: [statesync] section is missing in config.toml file at %s\n", configTomlFilePath)
-		return
+		return nil
 	}
 	if config.StateSync.Enable {
 		warnRecord("statesync is enabled in config.toml file", "disable state sync in section [statesync]")
@@ -507,7 +525,7 @@ func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) {
 
 	if config.Consensus == nil {
 		exitWithErrorMsgf("ERR: [consensus] section is missing in config.toml file at %s\n", configTomlFilePath)
-		return
+		return nil
 	}
 	if config.Consensus.DoubleSignCheckHeight > 0 {
 		if isValidator {
@@ -533,41 +551,67 @@ func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) {
 	}
 	if config.Consensus.SkipTimeoutCommit {
 		if isValidator {
-			fatalRecord("skip_timeout_commit is enabled in config.toml file, validator nodes should not use this", "disable skip_timeout_commit")
+			fatalRecord(
+				"skip_timeout_commit is enabled in config.toml file, validator nodes should not use this",
+				"disable skip_timeout_commit",
+			)
 		} else {
-			warnRecord("skip_timeout_commit is enabled in config.toml file", "disable skip_timeout_commit")
+			warnRecord(
+				"skip_timeout_commit is enabled in config.toml file",
+				"disable skip_timeout_commit",
+			)
 		}
 	}
 
 	if config.TxIndex == nil {
 		exitWithErrorMsgf("ERR: [tx_index] section is missing in config.toml file at %s\n", configTomlFilePath)
-		return
+		return nil
 	}
 	switch config.TxIndex.Indexer {
 	case "":
 		if isValidator {
-			fatalRecord("indexer is empty in [tx_index] section of config.toml file, validator nodes should set this to \"null\"", "set indexer to \"null\"")
+			fatalRecord(
+				"indexer is empty in [tx_index] section of config.toml file, validator nodes should set this to \"null\"",
+				"set indexer to \"null\"",
+			)
 		} else {
-			warnRecord("indexer is empty in [tx_index] section of config.toml file, non-validator nodes should set this to \"kv\"", "set indexer to \"kv\"")
+			warnRecord(
+				"indexer is empty in [tx_index] section of config.toml file, non-validator nodes should set this to \"kv\"",
+				"set indexer to \"kv\"",
+			)
 		}
 	case "kv":
 		if isValidator {
-			warnRecord("indexer is set to \"kv\" in [tx_index] section of config.toml file, validator nodes should set this to \"null\"", "set indexer to \"null\"")
+			warnRecord(
+				"indexer is set to \"kv\" in [tx_index] section of config.toml file, validator nodes should set this to \"null\"",
+				"set indexer to \"null\"",
+			)
 		}
 	case "null":
 		if !isValidator {
-			fatalRecord("indexer is set to \"null\" (disable indexer) in [tx_index] section of config.toml file, non-validator nodes should set this to \"kv\"", "set indexer to \"kv\"")
+			fatalRecord(
+				"indexer is set to \"null\" (disable indexer) in [tx_index] section of config.toml file, non-validator nodes should set this to \"kv\"",
+				"set indexer to \"kv\"",
+			)
 		}
 	default:
 		if isValidator {
-			fatalRecord(fmt.Sprintf("invalid indexer option \"%s\" in [tx_index] section of config.toml file", config.TxIndex.Indexer), "set indexer to \"null\"")
+			fatalRecord(
+				fmt.Sprintf("invalid indexer option \"%s\" in [tx_index] section of config.toml file", config.TxIndex.Indexer),
+				"set indexer to \"null\"",
+			)
 		} else {
-			fatalRecord(fmt.Sprintf("invalid indexer option \"%s\" in [tx_index] section of config.toml file", config.TxIndex.Indexer), "set indexer to \"kv\"")
+			fatalRecord(
+				fmt.Sprintf("invalid indexer option \"%s\" in [tx_index] section of config.toml file", config.TxIndex.Indexer),
+				"set indexer to \"kv\"",
+			)
 		}
 	}
+
+	return &config
 }
 
-func checkHomeConfigGenesisJson(configPath string, nodeType types.NodeType) {
+func checkHomeConfigGenesisJson(configPath string) {
 	genesisJsonFilePath := path.Join(configPath, "genesis.json")
 	perm, exists, isDir, err := utils.FileInfo(genesisJsonFilePath)
 	if err != nil {
@@ -597,7 +641,7 @@ func checkHomeConfigGenesisJson(configPath string, nodeType types.NodeType) {
 	}
 }
 
-func checkHomeConfigNodeKeyJson(configPath string, nodeType types.NodeType) {
+func checkHomeConfigNodeKeyJson(configPath string) {
 	nodeKeyJsonFilePath := path.Join(configPath, "node_key.json")
 	perm, exists, isDir, err := utils.FileInfo(nodeKeyJsonFilePath)
 	if err != nil {
@@ -668,7 +712,7 @@ func checkHomeConfigNodeKeyJson(configPath string, nodeType types.NodeType) {
 	}
 }
 
-func checkHomeConfigPrivValidatorKeyJson(configPath string, nodeType types.NodeType) {
+func checkHomeConfigPrivValidatorKeyJson(configPath string) {
 	privValidatorJsonFilePath := path.Join(configPath, "priv_validator_key.json")
 	perm, exists, isDir, err := utils.FileInfo(privValidatorJsonFilePath)
 	if err != nil {
@@ -767,5 +811,47 @@ func checkHomeConfigPrivValidatorKeyJson(configPath string, nodeType types.NodeT
 	if !regexp.MustCompile(`^[\dA-F]{40}$`).MatchString(nk.Address) {
 		exitWithErrorMsgf("ERR: address is malformed in priv_validator_key.json file at %s\n", privValidatorJsonFilePath)
 		return
+	}
+}
+
+func checkHomeConfigConfigTomlAndAppToml(nodeType types.NodeType, configToml *types.ConfigToml, appToml *types.AppToml) {
+	if configToml == nil || appToml == nil {
+		panic("configToml or appToml is nil")
+	}
+
+	isValidator := nodeType == types.ValidatorNode
+
+	if isValidator {
+		if appToml.Pruning == constants.PruningCustom {
+			if appToml.PruningKeepRecent != "" {
+				pruningKeepRecent, err := strconv.ParseUint(appToml.PruningKeepRecent, 10, 64)
+				if err != nil {
+					exitWithErrorMsgf("ERR: failed to parse pruning-keep-recent in app.toml file: %v\n", err)
+					return
+				}
+
+				if pruningKeepRecent <= uint64(configToml.Consensus.DoubleSignCheckHeight) {
+					warnRecord(
+						fmt.Sprintf(
+							"pruning-keep-recent %d should be greater than double_sign_check_height %d in app.toml file",
+							pruningKeepRecent,
+							configToml.Consensus.DoubleSignCheckHeight,
+						),
+						fmt.Sprintf("increase pruning-keep-recent to be greater than double_sign_check_height few blocks"),
+					)
+				}
+			}
+
+			if appToml.MinRetainsBlock <= configToml.Consensus.DoubleSignCheckHeight {
+				warnRecord(
+					fmt.Sprintf(
+						"min-retain-blocks %d should be greater than double_sign_check_height %d in app.toml file",
+						appToml.MinRetainsBlock,
+						configToml.Consensus.DoubleSignCheckHeight,
+					),
+					fmt.Sprintf("increase min-retain-blocks to be greater than double_sign_check_height few blocks"),
+				)
+			}
+		}
 	}
 }
