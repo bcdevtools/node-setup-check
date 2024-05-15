@@ -341,12 +341,14 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	if maxSendMsgSize < suggestedMaxSendMsgSizeBytes {
 		warnRecord("max-send-msg-size is too low in app.toml file", fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb))
 	}
-	if app.Grpc.Enable && maxSendMsgSize > suggestedMaxSendMsgSizeBytes*5 {
-		warnRecord("max-send-msg-size is too high in app.toml file", fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb))
-	}
-	if app.Grpc.Enable && strings.HasSuffix(app.Grpc.Address, ":9090") {
-		if isRpc && isArchivalNode {
-			warnRecord("GRPC port should not be the default one (9090) on RPC and Archival node", "set grpc address to a custom port")
+	if isRpc || isArchivalNode {
+		if app.Grpc.Enable {
+			if maxSendMsgSize > suggestedMaxSendMsgSizeBytes*5 {
+				warnRecord("max-send-msg-size is too high in app.toml file", fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb))
+			}
+			if strings.HasSuffix(app.Grpc.Address, ":9090") {
+				warnRecord("GRPC port should not be the default one (9090) on RPC and Archival node", "set grpc address to a custom port")
+			}
 		}
 	}
 }
