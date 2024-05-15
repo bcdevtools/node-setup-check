@@ -101,8 +101,9 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 		SnapshotKeepRecent uint `toml:"snapshot-keep-recent"`
 	}
 	type grpcAppToml struct {
-		Enable         bool `toml:"enable"`
-		MaxSendMsgSize uint `toml:"max-send-msg-size"`
+		Enable         bool   `toml:"enable"`
+		Address        string `toml:"address"`
+		MaxSendMsgSize uint   `toml:"max-send-msg-size"`
 	}
 	type appToml struct {
 		MinimumGasPrices  string            `toml:"minimum-gas-prices"`
@@ -337,6 +338,11 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	}
 	if app.Grpc.Enable && app.Grpc.MaxSendMsgSize > suggestedMaxSendMsgSizeBytes*5 {
 		warnRecord("max-send-msg-size is too high in app.toml file", fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb))
+	}
+	if app.Grpc.Enable && strings.HasSuffix(app.Grpc.Address, ":9090") {
+		if isRpc && isArchivalNode {
+			warnRecord("GRPC port should not be the default one (9090) on RPC and Archival node", "set grpc address to a custom port")
+		}
 	}
 }
 
