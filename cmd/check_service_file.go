@@ -92,7 +92,7 @@ func checkServiceFileForValidatorOnLinux(home string, serviceFilePath string) {
 					"change User to a non-root user",
 				)
 			} else if !strings.Contains(user, "-") {
-				fatalRecord(
+				warnRecord(
 					"service file is using invalid User in [Service] section",
 					"use memorable username with hyphen, e.g. \"val-x-testnet\"",
 				)
@@ -117,7 +117,10 @@ func checkServiceFileForValidatorOnLinux(home string, serviceFilePath string) {
 			}
 		}
 		if sf.Service.Restart == "" {
-			fatalRecord("service file is missing Restart in [Service] section", "add Restart=no to [Service] section")
+			fatalRecord(
+				"service file is missing Restart in [Service] section",
+				"add Restart=no to [Service] section",
+			)
 		} else if sf.Service.Restart != "no" {
 			fatalRecord(
 				"service file is using invalid Restart in [Service] section, must using 'no' to prevent incident restart",
@@ -125,7 +128,26 @@ func checkServiceFileForValidatorOnLinux(home string, serviceFilePath string) {
 			)
 		}
 		if sf.Service.RestartSec != "" {
-			fatalRecord("service file contains RestartSec in [Service] section", "remove RestartSec from [Service] section")
+			fatalRecord(
+				"service file contains RestartSec in [Service] section",
+				"remove RestartSec from [Service] section",
+			)
+		}
+	}
+
+	if sf.Install == nil {
+		fatalRecord("service file is missing [Install] section", "add [Install] section to service file")
+	} else {
+		if sf.Install.WantedBy == "" {
+			fatalRecord(
+				"service file is missing WantedBy in [Install] section",
+				"add WantedBy=multi-user.target in [Install] section",
+			)
+		} else if sf.Install.WantedBy != "multi-user.target" {
+			fatalRecord(
+				"service file is using invalid WantedBy in [Install] section",
+				"change WantedBy to multi-user.target in [Install] section",
+			)
 		}
 	}
 
