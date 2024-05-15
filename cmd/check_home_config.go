@@ -103,7 +103,7 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	type grpcAppToml struct {
 		Enable         bool   `toml:"enable"`
 		Address        string `toml:"address"`
-		MaxSendMsgSize uint   `toml:"max-send-msg-size"`
+		MaxSendMsgSize string `toml:"max-send-msg-size"`
 	}
 	type appToml struct {
 		MinimumGasPrices  string            `toml:"minimum-gas-prices"`
@@ -333,10 +333,15 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	}
 	const suggestedMaxSendMsgSizeMb = 100
 	const suggestedMaxSendMsgSizeBytes = suggestedMaxSendMsgSizeMb * 1024 * 1024
-	if app.Grpc.MaxSendMsgSize < suggestedMaxSendMsgSizeBytes {
+	maxSendMsgSize, err := strconv.ParseInt(app.Grpc.MaxSendMsgSize, 10, 64)
+	if err != nil {
+		exitWithErrorMsgf("ERR: failed to parse max-send-msg-size \"%s\" in app.toml file: %v\n", app.Grpc.MaxSendMsgSize, err)
+		return
+	}
+	if maxSendMsgSize < suggestedMaxSendMsgSizeBytes {
 		warnRecord("max-send-msg-size is too low in app.toml file", fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb))
 	}
-	if app.Grpc.Enable && app.Grpc.MaxSendMsgSize > suggestedMaxSendMsgSizeBytes*5 {
+	if app.Grpc.Enable && maxSendMsgSize > suggestedMaxSendMsgSizeBytes*5 {
 		warnRecord("max-send-msg-size is too high in app.toml file", fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb))
 	}
 	if app.Grpc.Enable && strings.HasSuffix(app.Grpc.Address, ":9090") {
