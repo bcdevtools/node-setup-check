@@ -510,12 +510,25 @@ func checkHomeConfigConfigToml(configPath string, nodeType types.NodeType) {
 		return
 	}
 	if config.Consensus.DoubleSignCheckHeight > 0 {
-		if !isValidator {
-			warnRecord("double_sign_check_height is set in config.toml file, non-validator nodes should not use this", "set double_sign_check_height to 0")
+		if isValidator {
+			if config.Consensus.DoubleSignCheckHeight > constants.MaxDoubleSignCheckHeight {
+				warnRecord(
+					fmt.Sprintf("double_sign_check_height %d is too high in config.toml file, can lower uptime", config.Consensus.DoubleSignCheckHeight),
+					fmt.Sprintf("set double_sign_check_height to %d", constants.RecommendDoubleSignCheckHeight),
+				)
+			} else if config.Consensus.DoubleSignCheckHeight < constants.MinDoubleSignCheckHeight {
+				warnRecord(
+					fmt.Sprintf("double_sign_check_height %d is too low in config.toml file", config.Consensus.DoubleSignCheckHeight),
+					fmt.Sprintf("set double_sign_check_height to %d", constants.RecommendDoubleSignCheckHeight),
+				)
+			}
 		}
 	} else {
 		if isValidator {
-			warnRecord("double_sign_check_height is not set in config.toml file, validator nodes should set this", "set double_sign_check_height to 10")
+			fatalRecord(
+				"double_sign_check_height is not set in config.toml file, validator nodes should set this",
+				fmt.Sprintf("set double_sign_check_height to %d", constants.RecommendDoubleSignCheckHeight),
+			)
 		}
 	}
 	if config.Consensus.SkipTimeoutCommit {
