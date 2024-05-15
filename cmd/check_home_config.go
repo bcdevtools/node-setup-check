@@ -227,7 +227,7 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 		}
 	} else if app.Pruning == constants.PruningEverything {
 		if app.MinRetainsBlock < 2 {
-			warnRecord("min-retain-blocks should be set to 2 if pruning \"default\" in app.toml file", "set min-retain-blocks to 362880")
+			warnRecord("min-retain-blocks should be set to 2 if pruning \"everything\" in app.toml file", "set min-retain-blocks to 2")
 		}
 	} else if app.Pruning == constants.PruningCustom {
 		pruningKeepRecent, err := strconv.ParseInt(app.PruningKeepRecent, 10, 64)
