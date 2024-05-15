@@ -92,7 +92,8 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 		Enable bool `toml:"enable"`
 	}
 	type jsonRpcAppToml struct {
-		Enable bool `toml:"enable"`
+		Enable        bool `toml:"enable"`
+		EnableIndexer bool `toml:"enable-indexer"`
 	}
 	type stateSyncAppToml struct {
 		SnapshotInterval   uint `toml:"snapshot-interval"`
@@ -269,6 +270,18 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 				fatalRecord("json-rpc is disabled in app.toml file, rpc node should enable it", "set enable to true")
 			} else if isArchivalNode {
 				warnRecord("json-rpc is disabled in app.toml file, archival node should enable it", "set enable to true")
+			}
+		}
+
+		if app.JsonRpc.EnableIndexer {
+			if isValidator {
+				warnRecord("json-rpc custom EVM-indexer is enabled in app.toml file, validator should disable it", "set enable-indexer to false")
+			}
+		} else {
+			if isRpc {
+				fatalRecord("json-rpc custom EVM-indexer is disabled in app.toml file, rpc node should enable it", "set enable-indexer to true")
+			} else if isArchivalNode {
+				warnRecord("json-rpc custom EVM-indexer is disabled in app.toml file, archival node should enable it", "set enable-indexer to true")
 			}
 		}
 	}
