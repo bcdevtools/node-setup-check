@@ -1,18 +1,23 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/bcdevtools/node-setup-check/constants"
 	"github.com/bcdevtools/node-setup-check/types"
 	"github.com/spf13/cobra"
+	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
 const (
 	flagType = "type"
 )
+
+var waitGroup sync.WaitGroup
 
 func GetCheckCmd() *cobra.Command {
 	validTargetValues := strings.Join(types.AllNodeTypeNames(), "/")
@@ -25,6 +30,7 @@ func GetCheckCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("App version", constants.VERSION)
 			fmt.Println("NOTICE: always update to latest version for accurate check")
+			go checkLatestRelease()
 			time.Sleep(2 * time.Second)
 
 			typeName, _ := cmd.Flags().GetString(flagType)
@@ -34,6 +40,7 @@ func GetCheckCmd() *cobra.Command {
 			}
 
 			defer func() {
+				waitGroup.Wait()
 				if len(checkRecords) == 0 {
 					fmt.Println("All checks passed")
 					return
@@ -77,6 +84,39 @@ func GetCheckCmd() *cobra.Command {
 	cmd.Flags().String(flagType, "", fmt.Sprintf("type of node to check, can be: %s", validTargetValues))
 
 	return cmd
+}
+
+func checkLatestRelease() {
+	waitGroup.Add(1)
+	defer func() {
+		r := recover()
+		if r != nil {
+			printfStdErr("ERR: failed to check latest release: %v\n", r)
+		}
+		waitGroup.Done()
+	}()
+
+	resp, err := http.Get("https://api.github.com/repos/bcdevtools/node-setup-check/releases/latest")
+	if err != nil {
+		panic(err)
+	}
+
+	defer resp.Body.Close()
+
+	var release struct {
+		TagName string `json:"tag_name"`
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&release)
+	if err != nil {
+		panic(err)
+	}
+
+	latestTagName := strings.TrimPrefix(release.TagName, "v")
+	currentVersion := strings.TrimPrefix(constants.VERSION, "v")
+	if latestTagName != currentVersion {
+		warnRecord(fmt.Sprintf("latest release is v%s, must use latest version to prevent bugs and new logics", latestTagName), "")
+	}
 }
 
 func init() {

@@ -13,19 +13,21 @@ func printlnStdErr(a ...any) {
 	fmt.Fprintln(os.Stderr, a...)
 }
 
-func PrintfStdErr(format string, a ...any) {
+func printfStdErr(format string, a ...any) {
 	fmt.Fprintf(os.Stderr, format, a...)
 }
 
 func exitWithErrorMsg(error string) {
 	printCheckRecords()
+	printlnStdErr()
 	printlnStdErr(error)
 	os.Exit(1)
 }
 
 func exitWithErrorMsgf(format string, a ...any) {
 	printCheckRecords()
-	PrintfStdErr(format, a...)
+	printlnStdErr()
+	printfStdErr(format, a...)
 	os.Exit(1)
 }
 
