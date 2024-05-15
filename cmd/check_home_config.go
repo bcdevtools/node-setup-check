@@ -142,7 +142,14 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) *types.A
 		}
 	case constants.PruningEverything:
 		if isValidator {
-			//
+			warnRecord(
+				fmt.Sprintf(
+					"pruning set to 'everything', however to work properly with double_sign_check_height, it should be set to 'custom' %d/%d in app.toml file",
+					constants.RecommendDoubleSignCheckHeight+10,
+					10,
+				),
+				"can be ignored, or change pruning = \"custom\", pruning-keep-recent = double_sign_check_height + 10, pruning-interval = 10",
+			)
 		} else if isArchivalNode {
 			fatalRecord(
 				"pruning set to 'everything' in app.toml file, archival node must not use this option",
