@@ -328,8 +328,18 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 		exitWithErrorMsgf("ERR: [grpc] section is missing in app.toml file at %s\n", appTomlFilePath)
 		return
 	}
-	if !app.Grpc.Enable {
-		fatalRecord("grpc is disabled in app.toml file, every node should enable it", "set enable to true")
+	if app.Grpc.Enable {
+		if isValidator {
+			warnRecord("grpc is enabled in app.toml file, validator should disable it", "set [grpc] enable to false")
+		}
+	} else {
+		if isValidator {
+			// good
+		} else if isSnapshotNode {
+			// no problem
+		} else {
+			fatalRecord("grpc is disabled in app.toml file, non-validator node should enable it", "set [grpc] enable to true")
+		}
 	}
 	const suggestedMaxSendMsgSizeMb = 100
 	const suggestedMaxSendMsgSizeBytes = suggestedMaxSendMsgSizeMb * 1024 * 1024
@@ -347,7 +357,7 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 				warnRecord("max-send-msg-size is too high in app.toml file", fmt.Sprintf("set max-send-msg-size to %d (%d MB)", suggestedMaxSendMsgSizeBytes, suggestedMaxSendMsgSizeMb))
 			}
 			if strings.HasSuffix(app.Grpc.Address, ":9090") {
-				warnRecord("GRPC port should not be the default one (9090) on RPC and Archival node", "set grpc address to a custom port")
+				warnRecord("GRPC port should not be the default one (9090) on RPC and Archival node", "set [grpc] address to a custom port")
 			}
 		}
 	}
