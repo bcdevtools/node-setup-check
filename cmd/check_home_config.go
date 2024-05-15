@@ -89,7 +89,8 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	}
 
 	type apiAppToml struct {
-		Enable bool `toml:"enable"`
+		Enable  bool `toml:"enable"`
+		Swagger bool `toml:"swagger"`
 	}
 	type jsonRpcAppToml struct {
 		Enable        bool `toml:"enable"`
@@ -251,6 +252,14 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) {
 	if app.Api.Enable {
 		if isValidator {
 			warnRecord("api is enabled in app.toml file, validator should disable it", "set enable to false")
+		}
+
+		if !app.Api.Swagger {
+			if isRpc {
+				warnRecord("rpc node should enable swagger", "set swagger to true")
+			} else if isArchivalNode {
+				warnRecord("archival node should enable swagger", "set swagger to true")
+			}
 		}
 	} else {
 		if isRpc {
