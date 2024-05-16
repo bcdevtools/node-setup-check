@@ -10,7 +10,7 @@ nodesc check ~/.node_home --type validator/rpc/snapshot/archival
 
 ## Install
 ```bash
-go install github.com/bcdevtools/node-setup-check/cmd/nodesc@latest
+cd ~ && go install github.com/bcdevtools/node-setup-check/cmd/nodesc@latest
 ```
 
 ## Spec

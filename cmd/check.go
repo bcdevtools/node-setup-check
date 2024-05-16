@@ -135,7 +135,10 @@ func checkLatestRelease() {
 	latestTagName := strings.TrimPrefix(release.TagName, "v")
 	currentVersion := strings.TrimPrefix(constants.VERSION, "v")
 	if latestTagName != currentVersion {
-		warnRecord(fmt.Sprintf("latest release is v%s, must use latest version to prevent bugs and new logics", latestTagName), "")
+		warnRecord(
+			fmt.Sprintf("latest release is v%s, must use latest version to prevent bugs and new logics", latestTagName),
+			fmt.Sprintf("cd ~ && go install github.com/bcdevtools/node-setup-check/cmd/nodesc@%s", release.TagName),
+		)
 	}
 }
 
