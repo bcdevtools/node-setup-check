@@ -8,6 +8,18 @@
 nodesc check ~/.node_home --type validator/rpc/snapshot/archival
 ```
 
+## Nginx config generator
+
+```bash
+nodesc gen-nginx \
+  --rpc rpc.mychain.testnet.example.com \
+  --rest rest.mychain.testnet.example.com \
+  --jsonrpc jsonrpc.mychain.testnet.example.com \
+  [--rpc-port 26657] \
+  [--rest-port 1317] \
+  [--jsonrpc-port 8545]
+```
+
 ## Install
 ```bash
 cd ~ && go install github.com/bcdevtools/node-setup-check/cmd/nodesc@latest
