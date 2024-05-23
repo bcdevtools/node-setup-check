@@ -4,7 +4,7 @@ package constants
 
 //goland:noinspection GoSnakeCaseUsage
 var (
-	VERSION     = "1.2.0"
+	VERSION     = "1.2.1"
 	COMMIT_HASH = ""
 	BUILD_DATE  = ""
 )

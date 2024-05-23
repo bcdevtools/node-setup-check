@@ -110,55 +110,68 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) *types.A
 		}
 	}
 
+	const recommendPruningCustomKeepRecent = 362880
+
 	switch app.Pruning {
 	case constants.PruningDefault:
 		if isValidator {
 			warnRecord(
 				"pruning set to 'default' in app.toml file",
-				"set pruning to everything for validator",
+				fmt.Sprintf("set pruning to 'custom' %d/10", recommendPruningCustomKeepRecent),
 			)
 		} else if isSnapshotNode {
 			warnRecord(
 				"pruning set to 'default' in app.toml file, snapshot not should be configured properly for snapshot purpose",
-				"set pruning to custom 100/10",
+				fmt.Sprintf("set pruning to 'custom' 100/10"),
 			)
 		} else if isArchivalNode {
 			fatalRecord(
-				"pruning set to 'default' in app.toml file, archival node should be configured properly for archival purpose",
-				"set pruning to nothing",
+				"pruning set to 'default' in app.toml file, archival node must be configured properly for archival purpose",
+				"set pruning to 'nothing'",
 			)
 		}
 	case constants.PruningNothing:
 		if isValidator {
 			fatalRecord(
 				"pruning set to 'nothing' in app.toml file, validator should not use this option",
-				"set pruning to everything",
+				fmt.Sprintf("set pruning to 'custom' %d/10", recommendPruningCustomKeepRecent),
 			)
 		} else if isSnapshotNode {
 			fatalRecord(
 				"pruning set to 'nothing' in app.toml file, snapshot not should be configured properly for snapshot purpose",
-				"set pruning to custom 100/10",
+				"set pruning to 'custom' 100/10",
 			)
 		}
 	case constants.PruningEverything:
 		if isValidator {
 			warnRecord(
 				fmt.Sprintf(
-					"pruning set to 'everything', however to work properly with double_sign_check_height, it should be set to 'custom' %d/%d in app.toml file",
+					"pruning set to 'everything', however to work properly with double_sign_check_height, it should be set to 'custom' at least %d/10 in app.toml file",
 					constants.RecommendDoubleSignCheckHeight+10,
-					10,
 				),
-				"can be ignored, or change pruning = \"custom\", pruning-keep-recent = double_sign_check_height + 10, pruning-interval = 10",
+				fmt.Sprintf("set pruning = 'custom', pruning-keep-recent = at least double_sign_check_height + 10 or recommend %d, pruning-interval = 10", recommendPruningCustomKeepRecent),
+			)
+			warnRecord(
+				fmt.Sprintf(
+					"pruning set to 'everything', however to work properly with evident, it should be set to 'custom' %d/10 in app.toml file",
+					recommendPruningCustomKeepRecent,
+				),
+				fmt.Sprintf("set pruning to 'custom' %d/10", recommendPruningCustomKeepRecent),
 			)
 		} else if isArchivalNode {
 			fatalRecord(
 				"pruning set to 'everything' in app.toml file, archival node must not use this option",
-				"set pruning to nothing",
+				"set pruning to 'nothing'",
+			)
+		} else if isSnapshotNode {
+			fatalRecord(
+				"pruning set to 'everything' in app.toml file, snapshot node must not use this option",
+				"set pruning to 'custom' 100/10",
 			)
 		} else {
 			fatalRecord(
 				"pruning set to 'everything' in app.toml file, non-validator should not use this option",
-				"set pruning to default or custom",
+				fmt.Sprintf("set pruning to 'custom' %d/10", recommendPruningCustomKeepRecent),
 			)
 		}
 	case constants.PruningCustom:
@@ -167,12 +180,10 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) *types.A
 		}
 	default:
 		msg := fmt.Sprintf("invalid pruning option '%s' in app.toml file", app.Pruning)
-		if isValidator {
-			fatalRecord(msg, "set pruning to everything")
-		} else if isArchivalNode {
+		if isArchivalNode {
 			fatalRecord(msg, "set pruning to nothing")
 		} else {
-			fatalRecord(msg, "set pruning to default or custom")
+			fatalRecord(msg, fmt.Sprintf("set pruning to custom %d/10", recommendPruningCustomKeepRecent))
 		}
 		exitWithErrorMsgf("ERR: invalid pruning option in app.toml file: %s\n", appTomlFilePath, app.Pruning)
 		return nil
@@ -180,7 +191,10 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) *types.A
 
 	if isSnapshotNode {
 		if app.Pruning != constants.PruningCustom || app.PruningKeepRecent != "100" || app.PruningInterval != "10" {
-			warnRecord("snapshot node should use pruning custom 100/10 in app.toml file", "set pruning to custom 100/10")
+			warnRecord(
+				"snapshot node should use pruning custom 100/10 in app.toml file",
+				"set pruning to 'custom' 100/10",
+			)
 		}
 	}
 
@@ -192,13 +206,16 @@ func checkHomeConfigAppToml(configPath string, nodeType types.NodeType) *types.A
 				return nil
 			}
 
-			if pruningKeepRecent > 400_000 {
+			if pruningKeepRecent > 500_000 {
 				warnRecord("pruning-keep-recent is too high in app.toml file", "")
 			} else if pruningKeepRecent < 2 {
 				fatalRecord("pruning-keep-recent is too low in app.toml file", "")
 			}
 		} else {
-			fatalRecord("pruning-keep-recent is empty in app.toml file", "set pruning-keep-recent to 100")
+			fatalRecord(
+				"pruning-keep-recent is empty in app.toml file",
+				fmt.Sprintf("set pruning-keep-recent to %d", recommendPruningCustomKeepRecent),
+			)
 		}
 
 		if app.PruningInterval != "" {

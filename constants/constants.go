@@ -4,7 +4,7 @@ package constants
 
 //goland:noinspection GoSnakeCaseUsage
 const (
-	APP_NAME    = "Validator Setup Check"
-	APP_DESC    = "Checking validator setup"
+	APP_NAME    = "Node Setup Check"
+	APP_DESC    = "Checking node setup"
 	BINARY_NAME = "nodesc"
 )
